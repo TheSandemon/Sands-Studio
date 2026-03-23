@@ -1,0 +1,25 @@
+{
+  "id": "monster-battler",
+  "name": "Monster Battler",
+  "description": "Autonomous monster arena — creatures spawn, fight, and evolve without a DM. Pure emergent AI combat.",
+  "version": "1.0.0",
+  "worldType": "grid",
+  "scheduling": "free-for-all",
+  "pacing": {
+    "burstWindowMs": 30000,
+    "burstCooldownMs": 2000,
+    "maxRequestsPerAgent": 50,
+    "respawnDelayMs": 6000
+  },
+  "renderer": {
+    "canvasWidth": 1440,
+    "canvasHeight": 900,
+    "backgroundColor": 1118481,
+    "showGrid": true,
+    "gridSize": 32
+  },
+  "hasOrchestrator": false,
+  "assets": "assets",
+  "agents": "agents",
+  "world": "world.json"
+}

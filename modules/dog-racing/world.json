@@ -1,0 +1,520 @@
+{
+  "entities": [
+    {
+      "id": "track-main",
+      "type": "track",
+      "name": "Racing Track",
+      "position": { "x": 0, "y": 0 },
+      "spriteTag": "track",
+      "state": "idle",
+      "visible": true,
+      "properties": {
+        "width": 2880,
+        "height": 900,
+        "lanes": 4,
+        "obstacleFrequency": 15,
+        "checkDifficulty": "medium"
+      }
+    },
+    {
+      "id": "dog-1",
+      "type": "racer",
+      "name": "Thunder Bolt",
+      "position": { "x": 100, "y": 200 },
+      "spriteTag": "dog",
+      "state": "idle",
+      "visible": true,
+      "properties": {
+        "breed": "Greyhound",
+        "color": "brown",
+        "speed": 95,
+        "agility": 70,
+        "luck": 40,
+        "personality": "reckless",
+        "tendency": "charge_forward",
+        "ability": "Sprint Burst - 20% speed boost for 5 seconds",
+        "points": 0,
+        "wins": 0,
+        "raceHistory": []
+      },
+      "team": "racer-1"
+    },
+    {
+      "id": "dog-2",
+      "type": "racer",
+      "name": "Dusty Trail",
+      "position": { "x": 100, "y": 320 },
+      "spriteTag": "dog",
+      "state": "idle",
+      "visible": true,
+      "properties": {
+        "breed": "Australian Shepherd",
+        "color": "black_white",
+        "speed": 75,
+        "agility": 80,
+        "luck": 60,
+        "personality": "patient",
+        "tendency": "strategic",
+        "ability": "Trail Finder - Better obstacle anticipation",
+        "points": 0,
+        "wins": 0,
+        "raceHistory": []
+      },
+      "team": "racer-2"
+    },
+    {
+      "id": "dog-3",
+      "type": "racer",
+      "name": "Shadow Swift",
+      "position": { "x": 100, "y": 440 },
+      "spriteTag": "dog",
+      "state": "idle",
+      "visible": true,
+      "properties": {
+        "breed": "Doberman",
+        "color": "black_rust",
+        "speed": 85,
+        "agility": 95,
+        "luck": 45,
+        "personality": "cunning",
+        "tendency": "tactical",
+        "ability": "Shadow Step - 30% dodge chance",
+        "points": 0,
+        "wins": 0,
+        "raceHistory": []
+      },
+      "team": "racer-3"
+    },
+    {
+      "id": "dog-4",
+      "type": "racer",
+      "name": "Golden Fur",
+      "position": { "x": 100, "y": 560 },
+      "spriteTag": "dog",
+      "state": "idle",
+      "visible": true,
+      "properties": {
+        "breed": "Golden Retriever",
+        "color": "golden",
+        "speed": 70,
+        "agility": 65,
+        "luck": 95,
+        "personality": "charismatic",
+        "tendency": "lucky",
+        "ability": "Fortune's Favor - Reroll failed checks once per race",
+        "points": 0,
+        "wins": 0,
+        "raceHistory": []
+      },
+      "team": "racer-4"
+    },
+    {
+      "id": "dog-5",
+      "type": "racer",
+      "name": "Iron Claw",
+      "position": { "x": 100, "y": 680 },
+      "spriteTag": "dog",
+      "state": "idle",
+      "visible": true,
+      "properties": {
+        "breed": "American Staffordshire",
+        "color": "brindle",
+        "speed": 60,
+        "agility": 55,
+        "luck": 50,
+        "personality": "stubborn",
+        "tendency": "force_through",
+        "ability": "Iron Will - Ignore first obstacle impact per race",
+        "points": 0,
+        "wins": 0,
+        "raceHistory": []
+      },
+      "team": "racer-5"
+    },
+    {
+      "id": "dog-6",
+      "type": "racer",
+      "name": "Silver Storm",
+      "position": { "x": 3100, "y": 200 },
+      "spriteTag": "dog",
+      "state": "idle",
+      "visible": false,
+      "properties": {
+        "breed": "Weimaraner",
+        "color": "silver",
+        "speed": 80,
+        "agility": 85,
+        "luck": 55,
+        "personality": "calm",
+        "tendency": "measured",
+        "ability": "Storm Front - Consistent speed, minimal variance",
+        "points": 0,
+        "wins": 0,
+        "raceHistory": []
+      },
+      "team": "racer-6"
+    },
+    {
+      "id": "dog-7",
+      "type": "racer",
+      "name": "Blazing Comet",
+      "position": { "x": 3100, "y": 320 },
+      "spriteTag": "dog",
+      "state": "idle",
+      "visible": false,
+      "properties": {
+        "breed": "Border Collie",
+        "color": "black_white",
+        "speed": 90,
+        "agility": 75,
+        "luck": 50,
+        "personality": "energetic",
+        "tendency": "erratic",
+        "ability": "Comet Trail - Unpredictable but high potential",
+        "points": 0,
+        "wins": 0,
+        "raceHistory": []
+      },
+      "team": "racer-7"
+    },
+    {
+      "id": "dog-8",
+      "type": "racer",
+      "name": "Midnight Howl",
+      "position": { "x": 3100, "y": 440 },
+      "spriteTag": "dog",
+      "state": "idle",
+      "visible": false,
+      "properties": {
+        "breed": "Black Labrador",
+        "color": "black",
+        "speed": 78,
+        "agility": 88,
+        "luck": 65,
+        "personality": "mysterious",
+        "tendency": "precise",
+        "ability": "Night Vision - Bonus to night/visibility checks",
+        "points": 0,
+        "wins": 0,
+        "raceHistory": []
+      },
+      "team": "racer-8"
+    },
+    {
+      "id": "dog-9",
+      "type": "racer",
+      "name": "Copper Penny",
+      "position": { "x": 3100, "y": 560 },
+      "spriteTag": "dog",
+      "state": "idle",
+      "visible": false,
+      "properties": {
+        "breed": "Cocker Spaniel",
+        "color": "golden_white",
+        "speed": 65,
+        "agility": 72,
+        "luck": 75,
+        "personality": "optimistic",
+        "tendency": "determined",
+        "ability": "Second Wind - Recover speed after obstacles",
+        "points": 0,
+        "wins": 0,
+        "raceHistory": []
+      },
+      "team": "racer-9"
+    },
+    {
+      "id": "dog-10",
+      "type": "racer",
+      "name": "Raging Flame",
+      "position": { "x": 3100, "y": 680 },
+      "spriteTag": "dog",
+      "state": "idle",
+      "visible": false,
+      "properties": {
+        "breed": "Redbone Coonhound",
+        "color": "red",
+        "speed": 88,
+        "agility": 60,
+        "luck": 35,
+        "personality": "intense",
+        "tendency": "aggressive",
+        "ability": "Blazing Speed - Massive speed but risks burnout",
+        "points": 0,
+        "wins": 0,
+        "raceHistory": []
+      },
+      "team": "racer-10"
+    },
+    {
+      "id": "dog-11",
+      "type": "racer",
+      "name": "Ocean Wave",
+      "position": { "x": 6100, "y": 200 },
+      "spriteTag": "dog",
+      "state": "idle",
+      "visible": false,
+      "properties": {
+        "breed": "Labrador",
+        "color": "chocolate",
+        "speed": 72,
+        "agility": 90,
+        "luck": 70,
+        "personality": "fluid",
+        "tendency": "adaptable",
+        "ability": "Wave Runner - Excellent at changing lanes",
+        "points": 0,
+        "wins": 0,
+        "raceHistory": []
+      },
+      "team": "racer-11"
+    },
+    {
+      "id": "dog-12",
+      "type": "racer",
+      "name": "Mountain Peak",
+      "position": { "x": 6100, "y": 320 },
+      "spriteTag": "dog",
+      "state": "idle",
+      "visible": false,
+      "properties": {
+        "breed": "Bernese Mountain",
+        "color": "tricolor",
+        "speed": 55,
+        "agility": 60,
+        "luck": 80,
+        "personality": "steady",
+        "tendency": "reliable",
+        "ability": "Peak Performance - Maintains pace despite obstacles",
+        "points": 0,
+        "wins": 0,
+        "raceHistory": []
+      },
+      "team": "racer-12"
+    },
+    {
+      "id": "dog-13",
+      "type": "racer",
+      "name": "Lightning Spark",
+      "position": { "x": 6100, "y": 440 },
+      "spriteTag": "dog",
+      "state": "idle",
+      "visible": false,
+      "properties": {
+        "breed": "Jack Russell Terrier",
+        "color": "white_brown",
+        "speed": 92,
+        "agility": 82,
+        "luck": 42,
+        "personality": "quick-witted",
+        "tendency": "clever",
+        "ability": "Quick Thinker - Faster decision making in checks",
+        "points": 0,
+        "wins": 0,
+        "raceHistory": []
+      },
+      "team": "racer-13"
+    },
+    {
+      "id": "dog-14",
+      "type": "racer",
+      "name": "Autumn Leaf",
+      "position": { "x": 6100, "y": 560 },
+      "spriteTag": "dog",
+      "state": "idle",
+      "visible": false,
+      "properties": {
+        "breed": "Sheltie",
+        "color": "sable_white",
+        "speed": 68,
+        "agility": 92,
+        "luck": 58,
+        "personality": "graceful",
+        "tendency": "elegant",
+        "ability": "Graceful Dodge - Extra time to avoid obstacles",
+        "points": 0,
+        "wins": 0,
+        "raceHistory": []
+      },
+      "team": "racer-14"
+    },
+    {
+      "id": "dog-15",
+      "type": "racer",
+      "name": "Winter Frost",
+      "position": { "x": 6100, "y": 680 },
+      "spriteTag": "dog",
+      "state": "idle",
+      "visible": false,
+      "properties": {
+        "breed": "Siberian Husky",
+        "color": "gray_white",
+        "speed": 82,
+        "agility": 78,
+        "luck": 62,
+        "personality": "cool",
+        "tendency": "calculated",
+        "ability": "Frost Focus - Bonus to all checks in difficult conditions",
+        "points": 0,
+        "wins": 0,
+        "raceHistory": []
+      },
+      "team": "racer-15"
+    },
+    {
+      "id": "dog-16",
+      "type": "racer",
+      "name": "Sunset Runner",
+      "position": { "x": 9100, "y": 400 },
+      "spriteTag": "dog",
+      "state": "idle",
+      "visible": false,
+      "properties": {
+        "breed": "Dalmatian",
+        "color": "white_black",
+        "speed": 84,
+        "agility": 76,
+        "luck": 68,
+        "personality": "determined",
+        "tendency": "passionate",
+        "ability": "Final Stretch - Speed boost in last quarter of race",
+        "points": 0,
+        "wins": 0,
+        "raceHistory": []
+      },
+      "team": "racer-16"
+    },
+    {
+      "id": "obstacle-1",
+      "type": "obstacle",
+      "name": "Low Hurdle",
+      "position": { "x": 600, "y": 0 },
+      "spriteTag": "hurdle",
+      "state": "idle",
+      "visible": true,
+      "properties": {
+        "width": 48,
+        "height": 200,
+        "checkType": "agility",
+        "difficulty": 2,
+        "damage": 0
+      }
+    },
+    {
+      "id": "obstacle-2",
+      "type": "obstacle",
+      "name": "Water Jump",
+      "position": { "x": 1200, "y": 0 },
+      "spriteTag": "water",
+      "state": "idle",
+      "visible": true,
+      "properties": {
+        "width": 96,
+        "height": 900,
+        "checkType": "luck",
+        "difficulty": 3,
+        "damage": 0
+      }
+    },
+    {
+      "id": "obstacle-3",
+      "type": "obstacle",
+      "name": "Barrel Cluster",
+      "position": { "x": 1800, "y": 0 },
+      "spriteTag": "barrel",
+      "state": "idle",
+      "visible": true,
+      "properties": {
+        "width": 144,
+        "height": 900,
+        "checkType": "agility",
+        "difficulty": 4,
+        "damage": 5
+      }
+    },
+    {
+      "id": "obstacle-4",
+      "type": "obstacle",
+      "name": "Slippery Patch",
+      "position": { "x": 2400, "y": 0 },
+      "spriteTag": "slippery",
+      "state": "idle",
+      "visible": true,
+      "properties": {
+        "width": 96,
+        "height": 900,
+        "checkType": "agility",
+        "difficulty": 2,
+        "damage": 0
+      }
+    },
+    {
+      "id": "obstacle-5",
+      "type": "obstacle",
+      "name": "Tunnel",
+      "position": { "x": 3600, "y": 0 },
+      "spriteTag": "tunnel",
+      "state": "idle",
+      "visible": true,
+      "properties": {
+        "width": 192,
+        "height": 900,
+        "checkType": "luck",
+        "difficulty": 3,
+        "damage": 0
+      }
+    },
+    {
+      "id": "obstacle-6",
+      "type": "obstacle",
+      "name": "Bumpy Road",
+      "position": { "x": 4200, "y": 0 },
+      "spriteTag": "bumpy",
+      "state": "idle",
+      "visible": true,
+      "properties": {
+        "width": 144,
+        "height": 900,
+        "checkType": "agility",
+        "difficulty": 4,
+        "damage": 10
+      }
+    },
+    {
+      "id": "obstacle-7",
+      "type": "obstacle",
+      "name": "Narrow Pass",
+      "position": { "x": 4800, "y": 0 },
+      "spriteTag": "narrow",
+      "state": "idle",
+      "visible": true,
+      "properties": {
+        "width": 96,
+        "height": 900,
+        "checkType": "agility",
+        "difficulty": 5,
+        "damage": 0
+      }
+    },
+    {
+      "id": "obstacle-8",
+      "type": "obstacle",
+      "name": "Finish Line",
+      "position": { "x": 5400, "y": 0 },
+      "spriteTag": "finish",
+      "state": "idle",
+      "visible": true,
+      "properties": {
+        "width": 96,
+        "height": 900,
+        "checkType": "none",
+        "difficulty": 0,
+        "damage": 0,
+        "isFinish": true
+      }
+    }
+  ],
+  "tick": 0,
+  "events": [],
+  "worldType": "freeform"
+}

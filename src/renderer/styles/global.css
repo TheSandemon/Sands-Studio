@@ -1,0 +1,160 @@
+/* ── Reset & base ──────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg:         #0d0d1a;
+  --bg-mid:     #0d0d24;
+  --bg-panel:   #09091a;
+  --border:     #1e1e3a;
+  --text:       #c8cce4;
+  --text-dim:   #6666aa;
+  --accent:     #5b90f0;
+  --accent-alt: #bd93f9;
+  --green:      #50fa7b;
+  --red:        #ff4455;
+  --yellow:     #ffdd55;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 13px;
+}
+
+/* ── App shell ─────────────────────────────────────────────────────────── */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* ── Title bar ─────────────────────────────────────────────────────────── */
+.titlebar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  padding: 0;
+  height: 38px;
+  background: #080812;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  -webkit-app-region: drag; /* make it draggable on macOS/frameless windows */
+  user-select: none;
+}
+
+.titlebar-title {
+  font-size: 12px;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  text-align: center;
+  padding: 0 8px;
+}
+
+.titlebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  -webkit-app-region: no-drag;
+}
+
+.btn-spawn {
+  background: #12122a;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 3px 10px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.btn-spawn.shell:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Habitat section ───────────────────────────────────────────────────── */
+.habitat-section {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  background: #0b0b1e;
+}
+
+.habitat-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+/* ── Terminal section ──────────────────────────────────────────────────── */
+.terminal-section {
+  height: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.terminals-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.terminals-empty strong {
+  color: var(--text);
+}
+
+.terminal-grid {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  gap: 4px;
+  padding: 4px;
+  overflow-x: auto;
+  overflow-y: auto;
+  align-items: stretch;
+}
+
+/* ── Light theme overrides ──────────────────────────────────────────────── */
+[data-theme="light"] {
+  --bg:         #f0f0f8;
+  --bg-mid:     #e8e8f4;
+  --bg-panel:   #eaeaf8;
+  --border:     #c0c0e0;
+  --text:       #1a1a3a;
+  --text-dim:   #5555aa;
+}
+[data-theme="light"] .titlebar        { background: #e2e2f0; border-bottom-color: #c0c0e0; }
+[data-theme="light"] .habitat-section { background: #1a1a2e; } /* keep habitat dark for pixel art */
+[data-theme="light"] .terminal-header { background: var(--bg-mid) !important; border-bottom-color: var(--border) !important; }
+[data-theme="light"] .terminal-pane   { background: var(--bg-panel) !important; border-color: var(--border) !important; }
+[data-theme="light"] .agent-chat      { background: var(--bg) !important; border-top-color: var(--border) !important; }
+[data-theme="light"] .agent-input     { background: var(--bg-panel) !important; border-color: var(--border) !important; color: var(--text) !important; }
+[data-theme="light"] .menubar-trigger { color: var(--text-dim); }
+[data-theme="light"] .menubar-dropdown { background: var(--bg-mid); border-color: var(--border); }
+[data-theme="light"] .menubar-dropdown-item { color: var(--text); }
+[data-theme="light"] .settings-dialog { background: var(--bg-mid); }
+[data-theme="light"] .settings-header,
+[data-theme="light"] .settings-footer { background: var(--bg); }
+[data-theme="light"] .settings-input  { background: var(--bg) !important; color: var(--text) !important; }
+
+/* ── Scrollbars ────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #4a4a7a; }

@@ -1,0 +1,25 @@
+{
+  "id": "agents-and-architects",
+  "name": "Agents & Architects",
+  "description": "A live D&D campaign where AI agents play as adventurers and a DM narrates the world. Pure emergent storytelling.",
+  "version": "1.0.0",
+  "author": "Sands Studio",
+  "worldType": "grid",
+  "scheduling": "orchestrated",
+  "pacing": {
+    "burstWindowMs": 60000,
+    "burstCooldownMs": 5000,
+    "maxRequestsPerAgent": 20
+  },
+  "renderer": {
+    "canvasWidth": 1440,
+    "canvasHeight": 900,
+    "backgroundColor": 657946,
+    "showGrid": false,
+    "gridSize": 48
+  },
+  "hasOrchestrator": true,
+  "assets": "assets",
+  "agents": "agents",
+  "world": "world.json"
+}

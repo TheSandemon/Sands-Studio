@@ -1,0 +1,35 @@
+{
+  "tick": 0,
+  "round": 1,
+  "worldType": "grid",
+  "events": [],
+  "entities": [
+    {
+      "id": "wolf-1",
+      "type": "enemy",
+      "name": "Iron Fang",
+      "position": { "col": 3, "row": 7 },
+      "spriteTag": "wolf",
+      "properties": { "hp": 30, "maxHp": 30, "wins": 0 },
+      "state": "idle",
+      "visible": true
+    },
+    {
+      "id": "bear-1",
+      "type": "enemy",
+      "name": "Stone Paw",
+      "position": { "col": 16, "row": 7 },
+      "spriteTag": "bear",
+      "properties": { "hp": 60, "maxHp": 60, "wins": 0 },
+      "state": "idle",
+      "visible": true
+    }
+  ],
+  "grid": {
+    "width": 20,
+    "height": 14,
+    "tileWidth": 32,
+    "tileHeight": 32,
+    "tiles": []
+  }
+}

@@ -1,0 +1,1654 @@
+{
+  "tick": 0,
+  "round": 1,
+  "worldType": "grid",
+  "events": [],
+  "entities": [
+    {
+      "id": "dungeon_entrance",
+      "type": "landmark",
+      "name": "Dungeon Entrance",
+      "position": {
+        "col": 7,
+        "row": 2
+      },
+      "spriteTag": "door",
+      "properties": {},
+      "state": "idle",
+      "visible": true
+    },
+    {
+      "id": "goblin_1",
+      "type": "enemy",
+      "name": "Goblin Sentry",
+      "position": {
+        "col": 7,
+        "row": 4
+      },
+      "spriteTag": "goblin",
+      "properties": {
+        "hp": 12,
+        "maxHp": 12,
+        "ac": 13,
+        "str": 10,
+        "dex": 14,
+        "con": 10,
+        "int": 8,
+        "wis": 8,
+        "cha": 8
+      },
+      "state": "idle",
+      "visible": true
+    },
+    {
+      "id": "goblin_2",
+      "type": "enemy",
+      "name": "Goblin Guard",
+      "position": {
+        "col": 6,
+        "row": 5
+      },
+      "spriteTag": "goblin",
+      "properties": {
+        "hp": 15,
+        "maxHp": 15,
+        "ac": 15,
+        "str": 12,
+        "dex": 14,
+        "con": 12,
+        "int": 8,
+        "wis": 8,
+        "cha": 8
+      },
+      "state": "idle",
+      "visible": true
+    },
+    {
+      "id": "dragon",
+      "type": "enemy",
+      "name": "Shadow Wyrm",
+      "position": {
+        "col": 7,
+        "row": 8
+      },
+      "spriteTag": "dragon",
+      "properties": {
+        "hp": 85,
+        "maxHp": 85,
+        "ac": 18,
+        "str": 22,
+        "dex": 10,
+        "con": 20,
+        "int": 14,
+        "wis": 14,
+        "cha": 16
+      },
+      "state": "idle",
+      "visible": true
+    },
+    {
+      "id": "treasure",
+      "type": "item",
+      "name": "Ancient Chest",
+      "position": {
+        "col": 7,
+        "row": 9
+      },
+      "spriteTag": "chest",
+      "properties": {
+        "gold": 250,
+        "contains": "ring_of_wishes"
+      },
+      "state": "idle",
+      "visible": true
+    },
+    {
+      "id": "warrior",
+      "type": "player",
+      "name": "Sir Bramwell",
+      "position": {
+        "col": 7,
+        "row": 1
+      },
+      "spriteTag": "warrior",
+      "properties": {
+        "hp": 45,
+        "maxHp": 45,
+        "ac": 18,
+        "str": 18,
+        "dex": 12,
+        "con": 16,
+        "int": 10,
+        "wis": 13,
+        "cha": 11,
+        "weapon": "greatsword",
+        "class": "Fighter"
+      },
+      "agentRoleId": "warrior",
+      "state": "idle",
+      "visible": true
+    },
+    {
+      "id": "mage",
+      "type": "player",
+      "name": "Elindra",
+      "position": {
+        "col": 8,
+        "row": 1
+      },
+      "spriteTag": "mage",
+      "properties": {
+        "hp": 28,
+        "maxHp": 28,
+        "ac": 12,
+        "str": 8,
+        "dex": 14,
+        "con": 12,
+        "int": 18,
+        "wis": 13,
+        "cha": 10,
+        "spells": "fireball_magic_missile"
+      },
+      "agentRoleId": "mage",
+      "state": "idle",
+      "visible": true
+    },
+    {
+      "id": "rogue",
+      "type": "player",
+      "name": "Shade",
+      "position": {
+        "col": 6,
+        "row": 1
+      },
+      "spriteTag": "rogue",
+      "properties": {
+        "hp": 33,
+        "maxHp": 33,
+        "ac": 17,
+        "str": 12,
+        "dex": 18,
+        "con": 14,
+        "int": 14,
+        "wis": 11,
+        "cha": 10,
+        "abilities": "sneak_attack"
+      },
+      "agentRoleId": "rogue",
+      "state": "idle",
+      "visible": true
+    }
+  ],
+  "grid": {
+    "width": 15,
+    "height": 12,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "tiles": [
+      [
+        {
+          "col": 0,
+          "row": 0,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 1,
+          "row": 0,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 2,
+          "row": 0,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 3,
+          "row": 0,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 4,
+          "row": 0,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 5,
+          "row": 0,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 6,
+          "row": 0,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 7,
+          "row": 0,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 8,
+          "row": 0,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 9,
+          "row": 0,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 10,
+          "row": 0,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 11,
+          "row": 0,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 12,
+          "row": 0,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 13,
+          "row": 0,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 14,
+          "row": 0,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        }
+      ],
+      [
+        {
+          "col": 0,
+          "row": 1,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 1,
+          "row": 1,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 2,
+          "row": 1,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 3,
+          "row": 1,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 4,
+          "row": 1,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 5,
+          "row": 1,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 6,
+          "row": 1,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 7,
+          "row": 1,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 8,
+          "row": 1,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 9,
+          "row": 1,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 10,
+          "row": 1,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 11,
+          "row": 1,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 12,
+          "row": 1,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 13,
+          "row": 1,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 14,
+          "row": 1,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        }
+      ],
+      [
+        {
+          "col": 0,
+          "row": 2,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 1,
+          "row": 2,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 2,
+          "row": 2,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 3,
+          "row": 2,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 4,
+          "row": 2,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 5,
+          "row": 2,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 6,
+          "row": 2,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 7,
+          "row": 2,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 8,
+          "row": 2,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 9,
+          "row": 2,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 10,
+          "row": 2,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 11,
+          "row": 2,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 12,
+          "row": 2,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 13,
+          "row": 2,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 14,
+          "row": 2,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        }
+      ],
+      [
+        {
+          "col": 0,
+          "row": 3,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 1,
+          "row": 3,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 2,
+          "row": 3,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 3,
+          "row": 3,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 4,
+          "row": 3,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 5,
+          "row": 3,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 6,
+          "row": 3,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 7,
+          "row": 3,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 8,
+          "row": 3,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 9,
+          "row": 3,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 10,
+          "row": 3,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 11,
+          "row": 3,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 12,
+          "row": 3,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 13,
+          "row": 3,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 14,
+          "row": 3,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        }
+      ],
+      [
+        {
+          "col": 0,
+          "row": 4,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 1,
+          "row": 4,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 2,
+          "row": 4,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 3,
+          "row": 4,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 4,
+          "row": 4,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 5,
+          "row": 4,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 6,
+          "row": 4,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 7,
+          "row": 4,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 8,
+          "row": 4,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 9,
+          "row": 4,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 10,
+          "row": 4,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 11,
+          "row": 4,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 12,
+          "row": 4,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 13,
+          "row": 4,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 14,
+          "row": 4,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        }
+      ],
+      [
+        {
+          "col": 0,
+          "row": 5,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 1,
+          "row": 5,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 2,
+          "row": 5,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 3,
+          "row": 5,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 4,
+          "row": 5,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 5,
+          "row": 5,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 6,
+          "row": 5,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 7,
+          "row": 5,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 8,
+          "row": 5,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 9,
+          "row": 5,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 10,
+          "row": 5,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 11,
+          "row": 5,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 12,
+          "row": 5,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 13,
+          "row": 5,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 14,
+          "row": 5,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        }
+      ],
+      [
+        {
+          "col": 0,
+          "row": 6,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 1,
+          "row": 6,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 2,
+          "row": 6,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 3,
+          "row": 6,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 4,
+          "row": 6,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 5,
+          "row": 6,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 6,
+          "row": 6,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 7,
+          "row": 6,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 8,
+          "row": 6,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 9,
+          "row": 6,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 10,
+          "row": 6,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 11,
+          "row": 6,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 12,
+          "row": 6,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 13,
+          "row": 6,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 14,
+          "row": 6,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        }
+      ],
+      [
+        {
+          "col": 0,
+          "row": 7,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 1,
+          "row": 7,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 2,
+          "row": 7,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 3,
+          "row": 7,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 4,
+          "row": 7,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 5,
+          "row": 7,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 6,
+          "row": 7,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 7,
+          "row": 7,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 8,
+          "row": 7,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 9,
+          "row": 7,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 10,
+          "row": 7,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 11,
+          "row": 7,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 12,
+          "row": 7,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 13,
+          "row": 7,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 14,
+          "row": 7,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        }
+      ],
+      [
+        {
+          "col": 0,
+          "row": 8,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 1,
+          "row": 8,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 2,
+          "row": 8,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 3,
+          "row": 8,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 4,
+          "row": 8,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 5,
+          "row": 8,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 6,
+          "row": 8,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 7,
+          "row": 8,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 8,
+          "row": 8,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 9,
+          "row": 8,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 10,
+          "row": 8,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 11,
+          "row": 8,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 12,
+          "row": 8,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 13,
+          "row": 8,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 14,
+          "row": 8,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        }
+      ],
+      [
+        {
+          "col": 0,
+          "row": 9,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 1,
+          "row": 9,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 2,
+          "row": 9,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 3,
+          "row": 9,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 4,
+          "row": 9,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 5,
+          "row": 9,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 6,
+          "row": 9,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 7,
+          "row": 9,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 8,
+          "row": 9,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 9,
+          "row": 9,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 10,
+          "row": 9,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 11,
+          "row": 9,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 12,
+          "row": 9,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 13,
+          "row": 9,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 14,
+          "row": 9,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        }
+      ],
+      [
+        {
+          "col": 0,
+          "row": 10,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 1,
+          "row": 10,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 2,
+          "row": 10,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 3,
+          "row": 10,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 4,
+          "row": 10,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 5,
+          "row": 10,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 6,
+          "row": 10,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 7,
+          "row": 10,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 8,
+          "row": 10,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 9,
+          "row": 10,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 10,
+          "row": 10,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 11,
+          "row": 10,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 12,
+          "row": 10,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 13,
+          "row": 10,
+          "type": "floor",
+          "spriteTag": "stone_floor",
+          "walkable": true,
+          "properties": {}
+        },
+        {
+          "col": 14,
+          "row": 10,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        }
+      ],
+      [
+        {
+          "col": 0,
+          "row": 11,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 1,
+          "row": 11,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 2,
+          "row": 11,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 3,
+          "row": 11,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 4,
+          "row": 11,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 5,
+          "row": 11,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 6,
+          "row": 11,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 7,
+          "row": 11,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 8,
+          "row": 11,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 9,
+          "row": 11,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 10,
+          "row": 11,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 11,
+          "row": 11,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 12,
+          "row": 11,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 13,
+          "row": 11,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        },
+        {
+          "col": 14,
+          "row": 11,
+          "type": "wall",
+          "spriteTag": "wall_stone",
+          "walkable": false,
+          "properties": {}
+        }
+      ]
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "id": "dog-racing-tournament",
+  "name": "Dog Racing Tournament",
+  "description": "16 unique dogs compete in a serious tournament format, racing 4 at a time in side-scrolling races with obstacles. Cumulative points determine the champion. Each dog has distinct personality, tendencies, and abilities.",
+  "worldType": "freeform",
+  "scheduling": "orchestrated",
+  "pacing": {
+    "burstWindowMs": 60000,
+    "burstCooldownMs": 5000,
+    "maxRequestsPerAgent": 20
+  },
+  "renderer": {
+    "canvasWidth": 1440,
+    "canvasHeight": 900,
+    "backgroundColor": 13924410,
+    "gridSize": 48
+  },
+  "hasOrchestrator": true,
+  "assets": "assets",
+  "agents": "agents",
+  "world": "world.json"
+}

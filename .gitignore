@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+out/
+release/
+
+# User data
+.habitat/
+
+# Logs
+th*.log
+
+# Claude agent memory
+.claude/
+
+# OS files
+.DS_Store
+Thumbs.db

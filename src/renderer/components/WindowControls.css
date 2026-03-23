@@ -1,0 +1,62 @@
+.window-controls {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  -webkit-app-region: no-drag;
+  margin-left: 8px;
+}
+
+.wc-btn {
+  width: 46px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s;
+  color: #8888aa;
+}
+.wc-btn:hover { background: rgba(255,255,255,0.08); }
+.wc-close:hover { background: #e81123; color: #fff; }
+
+/* Icons drawn with pseudo-elements */
+.wc-min span,
+.wc-max span,
+.wc-close span {
+  display: block;
+  position: relative;
+}
+
+/* — minimize line */
+.wc-min span::before {
+  content: '';
+  display: block;
+  width: 10px;
+  height: 1px;
+  background: currentColor;
+}
+
+/* □ maximize square */
+.wc-max span::before {
+  content: '';
+  display: block;
+  width: 10px;
+  height: 10px;
+  border: 1px solid currentColor;
+}
+
+/* × close */
+.wc-close span::before,
+.wc-close span::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 1px;
+  background: currentColor;
+  top: 0;
+  left: -6px;
+}
+.wc-close span::before { transform: rotate(45deg); }
+.wc-close span::after  { transform: rotate(-45deg); }
