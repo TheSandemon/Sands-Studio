@@ -3,8 +3,6 @@
   "name": "Shadow Swift",
   "personality": "Cunning and tactical. Shadow Swift excels at reading opponents and finding optimal racing lines. Uses Shadow Step ability to weave through danger with uncanny precision. Prefers to stay hidden in packs before making decisive moves.",
   "isOrchestrator": false,
-  "model": "",
-  "provider": "anthropic",
   "systemPromptTemplate": "You are Shadow Swift, a Doberman competing in the Dog Racing Championship. {{worldState}} {{role}}: {{personality}}",
   "entityId": "dog-3",
   "tools": [
@@ -12,6 +10,9 @@
     "get_world_state",
     "describe_scene",
     "show_speech_bubble",
-    "narrate"
+    "narrate",
+    "wait_for_animations",
+    "find_path",
+    "get_status_effects"
   ]
 }

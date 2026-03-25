@@ -25,14 +25,53 @@ interface Tween {
   startTime: number
   duration: number
   done: boolean
+  delay?: number
+}
+
+interface HpTween {
+  entityId: string
+  hpBar: PIXI.Container
+  currentRatio: number
+  targetRatio: number
+  startTime: number
+  duration: number
+  done: boolean
 }
 
 function tickTween(tween: Tween): boolean {
-  const elapsed = Date.now() - tween.startTime
+  if (tween.delay && Date.now() - tween.startTime < tween.delay) return false
+  const elapsed = Date.now() - tween.startTime - (tween.delay ?? 0)
   const t = Math.min(1, elapsed / tween.duration)
   const eased = easeOutQuad(t)
   tween.sprite.x = lerp(tween.startX, tween.endX, eased)
   tween.sprite.y = lerp(tween.startY, tween.endY, eased)
+  if (t >= 1) {
+    tween.done = true
+  }
+  return tween.done
+}
+
+function easeOutBounce(t: number): number {
+  const n1 = 7.5625
+  const d1 = 2.75
+  if (t < 1 / d1) return n1 * t * t
+  else if (t < 2 / d1) return n1 * (t -= 1.5 / d1) * t + 0.75
+  else if (t < 2.5 / d1) return n1 * (t -= 2.25 / d1) * t + 0.9375
+  else return n1 * (t -= 2.625 / d1) * t + 0.984375
+}
+
+function tickHpTween(tween: HpTween): boolean {
+  const elapsed = Date.now() - tween.startTime
+  const t = Math.min(1, elapsed / tween.duration)
+  const eased = easeOutQuad(t)
+  const ratio = lerp(tween.currentRatio, tween.targetRatio, eased)
+  // Update the foreground bar width (child[1] is fg, geometry is at index 0)
+  const fg = tween.hpBar.children[1] as PIXI.Graphics
+  if (fg) {
+    fg.clear()
+    fg.rect(-16, 0, Math.round(32 * ratio), 4)
+    fg.fill({ color: ratio > 0.5 ? 0x44ff44 : ratio > 0.25 ? 0xffff44 : 0xff4444 })
+  }
   if (t >= 1) {
     tween.done = true
   }
@@ -45,6 +84,7 @@ export class EntityRenderer {
   private container: PIXI.Container
   private sprites = new Map<string, PIXI.Container>()
   private tweens = new Map<string, Tween>()
+  private hpTweens = new Map<string, HpTween>()
   private assetResolver: (tag: string, category: 'entity') => PIXI.Texture | null
   private hpBars = new Map<string, PIXI.Container>()
 
@@ -107,21 +147,33 @@ export class EntityRenderer {
 
       this.applyState(sprite, entity.state)
 
-      // Redraw HP bar with current HP
+      // Animate HP bar to new value (interpolate over 300ms)
       const hpBar = this.hpBars.get(entity.id)
       if (hpBar) {
         const hp = entity.properties['hp'] as number | undefined
         const maxHp = entity.properties['maxHp'] as number | undefined
         if (hp !== undefined) {
-          hpBar.removeChildren()
-          const bg = new PIXI.Graphics()
-          bg.rect(-16, 0, 32, 4).fill({ color: 0x222222 })
-          hpBar.addChild(bg)
-          const ratio = Math.max(0, hp) / (maxHp ?? hp)
-          const fg = new PIXI.Graphics()
-          fg.rect(-16, 0, Math.round(32 * ratio), 4)
-          fg.fill({ color: ratio > 0.5 ? 0x44ff44 : ratio > 0.25 ? 0xffff44 : 0xff4444 })
-          hpBar.addChild(fg)
+          const targetRatio = Math.max(0, Math.min(1, hp / (maxHp ?? hp)))
+          const existing = this.hpTweens.get(entity.id)
+          const currentRatio = existing
+            ? existing.currentRatio
+            : (() => {
+                // Read current displayed ratio from the fg child
+                const fg = hpBar.children[1] as PIXI.Graphics
+                if (fg && fg.width !== undefined) return fg.width / 32
+                return targetRatio
+              })()
+          if (Math.abs(currentRatio - targetRatio) > 0.01) {
+            this.hpTweens.set(entity.id, {
+              entityId: entity.id,
+              hpBar,
+              currentRatio,
+              targetRatio,
+              startTime: Date.now(),
+              duration: 300,
+              done: false,
+            })
+          }
         }
       }
     }
@@ -203,7 +255,8 @@ export class EntityRenderer {
     from: GridPosition | FreeformPosition,
     to: GridPosition | FreeformPosition,
     tileSize = 48,
-    duration = 400
+    duration = 400,
+    delay = 0
   ): void {
     const sprite = this.sprites.get(entityId)
     if (!sprite) return
@@ -220,8 +273,35 @@ export class EntityRenderer {
       startTime: Date.now(),
       duration,
       done: false,
+      delay,
     })
   }
+
+  animateSpawn(entityId: string): void {
+    const sprite = this.sprites.get(entityId)
+    if (!sprite) return
+    sprite.scale.set(0)
+    this._spawnAnimations.set(entityId, {
+      sprite,
+      startTime: Date.now(),
+      duration: 200,
+    })
+  }
+
+  animateDeath(entityId: string): void {
+    const sprite = this.sprites.get(entityId)
+    if (!sprite) return
+    this._deathAnimations.set(entityId, {
+      sprite,
+      startTime: Date.now(),
+      duration: 400,
+      startAlpha: sprite.alpha,
+      startScale: sprite.scale.x,
+    })
+  }
+
+  private _spawnAnimations = new Map<string, { sprite: PIXI.Container; startTime: number; duration: number }>()
+  private _deathAnimations = new Map<string, { sprite: PIXI.Container; startTime: number; duration: number; startAlpha: number; startScale: number }>()
 
   flashDamage(entityId: string): void {
     const sprite = this.sprites.get(entityId)
@@ -252,6 +332,20 @@ export class EntityRenderer {
     }
   }
 
+  flashStatusEffect(entityId: string, color: number): void {
+    const sprite = this.sprites.get(entityId)
+    if (!sprite) return
+
+    const spriteEl = sprite.children[0]
+    if (spriteEl instanceof PIXI.Sprite) {
+      spriteEl.tint = color
+      setTimeout(() => { spriteEl.tint = 0xffffff }, 250)
+    } else {
+      sprite.alpha = 0.6
+      setTimeout(() => { sprite.alpha = 1 }, 250)
+    }
+  }
+
   handleFacingChange(entityId: string, facing: 'left' | 'right' | 'up' | 'down'): void {
     const sprite = this.sprites.get(entityId)
     if (!sprite) return
@@ -276,6 +370,9 @@ export class EntityRenderer {
     sprite.destroy({ children: true })
     this.sprites.delete(entityId)
     this.tweens.delete(entityId)
+    this.hpTweens.delete(entityId)
+    this._spawnAnimations.delete(entityId)
+    this._deathAnimations.delete(entityId)
     this.hpBars.delete(entityId)
   }
 
@@ -284,6 +381,37 @@ export class EntityRenderer {
       const done = tickTween(tween)
       if (done) {
         this.tweens.delete(id)
+      }
+    }
+
+    // Tick HP bar interpolations
+    for (const [id, tween] of this.hpTweens) {
+      const done = tickHpTween(tween)
+      if (done) {
+        this.hpTweens.delete(id)
+      }
+    }
+
+    // Tick spawn animations (scale 0 → 1 with bounce)
+    for (const [id, anim] of this._spawnAnimations) {
+      const elapsed = Date.now() - anim.startTime
+      const t = Math.min(1, elapsed / anim.duration)
+      anim.sprite.scale.set(easeOutBounce(t))
+      if (t >= 1) {
+        anim.sprite.scale.set(1)
+        this._spawnAnimations.delete(id)
+      }
+    }
+
+    // Tick death animations (fade to 50% + scale to 0.8, then remove)
+    for (const [id, anim] of this._deathAnimations) {
+      const elapsed = Date.now() - anim.startTime
+      const t = Math.min(1, elapsed / anim.duration)
+      anim.sprite.alpha = lerp(anim.startAlpha, 0.5, easeOutQuad(t))
+      anim.sprite.scale.set(lerp(anim.startScale, 0.8, easeOutQuad(t)))
+      if (t >= 1) {
+        this.removeEntity(id)
+        this._deathAnimations.delete(id)
       }
     }
   }
@@ -298,6 +426,11 @@ export class EntityRenderer {
     return { x: pos.x, y: pos.y }
   }
 
+  applyStateFromEvent(entityId: string, state: EntityState): void {
+    const sprite = this.sprites.get(entityId)
+    if (sprite) this.applyState(sprite, state)
+  }
+
   getSprite(id: string): PIXI.Container | undefined {
     return this.sprites.get(id)
   }
@@ -308,6 +441,9 @@ export class EntityRenderer {
     }
     this.sprites.clear()
     this.tweens.clear()
+    this.hpTweens.clear()
+    this._spawnAnimations.clear()
+    this._deathAnimations.clear()
     this.hpBars.clear()
     this.container.destroy({ children: true })
   }

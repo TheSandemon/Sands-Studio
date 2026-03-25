@@ -1,0 +1,20 @@
+{
+  "id": "ants-food",
+  "name": "Ants: Food Wars",
+  "description": "Strategic real-time warfare between fire and carpenter ant colonies fighting for supremacy in a meadow arena.",
+  "worldType": "grid",
+  "scheduling": "free-for-all",
+  "pacing": {
+    "burstWindowMs": 60000,
+    "burstCooldownMs": 5000,
+    "maxRequestsPerAgent": 20
+  },
+  "renderer": {
+    "canvasWidth": 1440,
+    "canvasHeight": 900,
+    "backgroundColor": 895770,
+    "gridSize": 48
+  },
+  "hasOrchestrator": false,
+  "assets": "assets"
+}

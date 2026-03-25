@@ -1,14 +1,17 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Habitat from './components/Habitat'
 import TerminalPane from './components/TerminalPane'
 import WindowControls from './components/WindowControls'
 import MenuBar from './components/MenuBar'
 import SettingsDialog from './components/SettingsDialog'
+import ModuleSettingsDialog from './components/ModuleSettingsDialog'
 import BootstrapTerminal from './components/BootstrapTerminal'
+import ModuleCreatorV2 from './components/ModuleCreatorV2'
 import { useTerminalStore } from './store/useTerminalStore'
 import { useSettingsStore } from './store/useSettingsStore'
 import { useModuleStore } from './stores/useModuleStore'
 import ModuleView from './module-engine/ModuleView'
+import type { ModuleManifest } from './module-engine/types'
 import './styles/global.css'
 
 // ---------------------------------------------------------------------------
@@ -56,6 +59,8 @@ export default function App() {
   const terminals = useTerminalStore((s) => s.terminals)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [bootstrapOpen, setBootstrapOpen] = useState(false)
+  const [bootstrapV2Open, setBootstrapV2Open] = useState(false)
+  const [moduleSettingsId, setModuleSettingsId] = useState<string | null>(null)
   const terminalPanelHeight = useSettingsStore((s) => s.terminalPanelHeight)
   const habitatVisible = useSettingsStore((s) => s.habitatVisible)
   const terminalVisible = useSettingsStore((s) => s.terminalVisible)
@@ -74,12 +79,36 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
 
+  // Listen for module:manifest events (sent by resume-from-snapshot to sync store)
+  useEffect(() => {
+    const api = window.moduleAPI
+    if (!api) return
+    const handler = (manifest: ModuleManifest, assetPaths: Record<string, string>) => {
+      useModuleStore.getState().loadModule(manifest, assetPaths ?? {})
+    }
+    api.onManifest(handler)
+    return () => api.onManifest(handler)
+  }, [])
+
+  // Listen for module:status to reset store when module stops cleanly
+  useEffect(() => {
+    const api = window.moduleAPI
+    if (!api) return
+    const handler = (status: string) => {
+      if (status === 'stopped') {
+        useModuleStore.getState().reset()
+      }
+    }
+    api.onStatus(handler)
+    return () => api.onStatus(handler)
+  }, [])
+
   return (
     <>
       <div className="app">
         {/* ── Draggable title bar with integrated menu ── */}
         <div className="titlebar">
-          <MenuBar onOpenSettings={() => setSettingsOpen(true)} onCreateModule={() => setBootstrapOpen(true)} />
+          <MenuBar onOpenSettings={() => setSettingsOpen(true)} onCreateModule={() => setBootstrapOpen(true)} onCreateModuleV2={() => setBootstrapV2Open(true)} onOpenModuleSettings={(id) => setModuleSettingsId(id)} />
           <span className="titlebar-title">Terminal Habitat</span>
           <div className="titlebar-actions">
             <WindowControls />
@@ -136,6 +165,15 @@ export default function App() {
       {/* Bootstrap terminal — create new module with AI-guided conversational CLI */}
       {bootstrapOpen && (
         <BootstrapTerminal onClose={() => setBootstrapOpen(false)} />
+      )}
+      {bootstrapV2Open && (
+        <ModuleCreatorV2 onClose={() => setBootstrapV2Open(false)} />
+      )}
+      {moduleSettingsId && (
+        <ModuleSettingsDialog
+          moduleId={moduleSettingsId}
+          onClose={() => setModuleSettingsId(null)}
+        />
       )}
     </>
   )

@@ -3,11 +3,20 @@ import { join, resolve } from 'path'
 import fs from 'fs'
 import { ptyManager } from './pty-manager'
 import { dispatchAgentMessage, stopAgent } from './agent-runner'
-import { listModules, loadModule, buildAssetRegistry, bootstrapModule, saveBootstrap, getBootstrapQuestions } from './module-engine/module-loader'
+import { listModules, loadModule, buildAssetRegistry, bootstrapModule, saveBootstrap, getBootstrapQuestions, getQuestionSuggestions } from './module-engine/module-loader'
+import type { ModuleSnapshot } from './module-engine/orchestrator'
 import { ModuleOrchestrator } from './module-engine/orchestrator'
 
 function creaturesDir(): string {
   return resolve(process.cwd(), '.habitat', 'creatures')
+}
+
+function snapshotDir(): string {
+  return resolve(process.cwd(), 'modules')
+}
+
+function getSnapshotPath(moduleId: string): string {
+  return join(snapshotDir(), moduleId, '.snapshot.json')
 }
 
 function creatureFile(id: string): string {
@@ -117,16 +126,76 @@ function createWindow(): BrowserWindow {
   })
 
   ipcMain.on('module:stop', () => {
-    currentOrchestrator?.stop()
-    currentOrchestrator = null
+    if (currentOrchestrator) {
+      // Save snapshot before destroying so session can be resumed
+      try {
+        const snapshot = currentOrchestrator.serialize()
+        const snapshotPath = getSnapshotPath(loadedModule?.manifest.id ?? 'unknown')
+        fs.writeFileSync(snapshotPath, JSON.stringify(snapshot, null, 2))
+      } catch (err) {
+        console.error('[main] Failed to save module snapshot:', err)
+      }
+      currentOrchestrator.stop()
+      currentOrchestrator = null
+    }
   })
 
-  ipcMain.on('module:pause', () => {
-    currentOrchestrator?.pause()
+  ipcMain.handle('module:has-snapshot', (_e, moduleId: string) => {
+    return fs.existsSync(getSnapshotPath(moduleId))
   })
 
-  ipcMain.on('module:resume', () => {
-    currentOrchestrator?.resume()
+  ipcMain.handle('module:resume-from-snapshot', async (_e, moduleId: string, defaults?: { model?: string; apiKey?: string; baseURL?: string }) => {
+    const snapshotPath = getSnapshotPath(moduleId)
+    if (!fs.existsSync(snapshotPath)) {
+      throw new Error(`No snapshot found for module '${moduleId}'`)
+    }
+    const snapshot: ModuleSnapshot = JSON.parse(fs.readFileSync(snapshotPath, 'utf8'))
+
+    // Ensure module is loaded (may already be loaded, or may need fresh load)
+    if (!loadedModule || loadedModule.manifest.id !== moduleId) {
+      loadedModule = await loadModule(moduleId)
+    }
+
+    // Merge snapshot agent configs with fresh loaded configs (to pick up apiKeys)
+    const snapshotAgentMap = new Map(snapshot.agentConfigs.map((a) => [a.id, a]))
+    const mergedRoles = loadedModule.agents.map((role) => {
+      const snap = snapshotAgentMap.get(role.id)
+      if (snap) {
+        // Prefer fresh loaded apiKey; fall back to snapshot's (may be empty)
+        return { ...snap, apiKey: role.apiKey ?? snap.apiKey }
+      }
+      return role
+    })
+
+    currentOrchestrator = await ModuleOrchestrator.restore(
+      { ...snapshot, agentConfigs: mergedRoles },
+      win,
+      defaults
+    )
+
+    // Build asset paths before starting so we can send them with the status
+    const assetPaths: Record<string, string> = {}
+    const reg = loadedModule.assetRegistry
+    for (const [tag, assets] of Object.entries(reg.tiles)) {
+      if (assets[0]) assetPaths[`tile:${tag}`] = assets[0].path
+    }
+    for (const [tag, assets] of Object.entries(reg.entities)) {
+      if (assets[0]) assetPaths[`entity:${tag}`] = assets[0].path
+    }
+    for (const [tag, assets] of Object.entries(reg.effects)) {
+      if (assets[0]) assetPaths[`effect:${tag}`] = assets[0].path
+    }
+
+    // Send 'loading' + 'running' BEFORE start() so ModuleView is mounted and listening
+    // before the orchestrator starts emitting status events
+    if (!win.isDestroyed()) {
+      win.webContents.send('module:status', 'loading')
+      win.webContents.send('module:manifest', loadedModule.manifest, assetPaths)
+      win.webContents.send('module:status', 'running')
+      win.webContents.send('module:state', snapshot.worldState)
+    }
+
+    await currentOrchestrator.start()
   })
 
   ipcMain.on('module:unload', () => {
@@ -154,6 +223,16 @@ function createWindow(): BrowserWindow {
     })
   })
 
+  ipcMain.handle('module:bootstrap-question-suggestions', async (_e, question: string, scenario: string, opts?: { model?: string; apiKey?: string; baseURL?: string }) => {
+    return await getQuestionSuggestions({
+      question,
+      scenario,
+      model: opts?.model,
+      apiKey: opts?.apiKey,
+      baseURL: opts?.baseURL,
+    })
+  })
+
   ipcMain.handle('module:bootstrap', async (_e, moduleId: string, prompt: string, opts?: { model?: string; apiKey?: string; baseURL?: string }) => {
     const result = await bootstrapModule({
       scenarioPrompt: prompt,
@@ -167,6 +246,67 @@ function createWindow(): BrowserWindow {
 
   ipcMain.handle('module:save', (_e, id: string, data: { manifest: unknown; world: unknown; agents: unknown[] }) => {
     return saveBootstrap(id, data as { manifest: import('./module-engine/module-loader').ModuleManifest; world: import('./module-engine/module-loader').WorldState; agents: import('./module-engine/module-loader').AgentRole[] })
+  })
+
+  /** Load full module config (manifest + agents) for settings dialog. */
+  ipcMain.handle('module:getConfig', (_e, moduleId: string) => {
+    const modulePath = resolve(process.cwd(), 'modules', moduleId)
+    const manifestPath = resolve(modulePath, 'manifest.json')
+    if (!fs.existsSync(manifestPath)) {
+      throw new Error(`manifest.json not found for module '${moduleId}'`)
+    }
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+    const agentsDir = resolve(modulePath, manifest.agents ?? 'agents')
+    const agents: unknown[] = []
+    if (fs.existsSync(agentsDir)) {
+      for (const file of fs.readdirSync(agentsDir)) {
+        if (file.endsWith('.json')) {
+          agents.push(JSON.parse(fs.readFileSync(resolve(agentsDir, file), 'utf8')))
+        }
+      }
+    }
+    return { manifest, agents }
+  })
+
+  /** Save manifest and/or agent changes to disk. */
+  ipcMain.handle('module:saveConfigChanges', (_e, moduleId: string, changes: unknown) => {
+    const modulePath = resolve(process.cwd(), 'modules', moduleId)
+    const manifestPath = resolve(modulePath, 'manifest.json')
+    if (!fs.existsSync(manifestPath)) {
+      throw new Error(`manifest.json not found for module '${moduleId}'`)
+    }
+    const { manifest: manifestPatch, agents: agentPatches } = changes as {
+      manifest?: Record<string, unknown>
+      agents?: Array<{ id: string; [key: string]: unknown }>
+    }
+
+    // Save manifest changes
+    if (manifestPatch) {
+      const current = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+      const editableFields = [
+        'name', 'description', 'version', 'author',
+        'worldType', 'scheduling', 'pacing', 'renderer',
+        'hasOrchestrator', 'agentMemory',
+      ]
+      for (const key of editableFields) {
+        if (key in manifestPatch) {
+          current[key] = manifestPatch[key]
+        }
+      }
+      fs.writeFileSync(manifestPath, JSON.stringify(current, null, 2))
+    }
+
+    // Save agent changes
+    if (agentPatches && agentPatches.length > 0) {
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+      const agentsDir = resolve(modulePath, manifest.agents ?? 'agents')
+      for (const agent of agentPatches) {
+        const agentPath = resolve(agentsDir, `${agent.id}.json`)
+        fs.writeFileSync(agentPath, JSON.stringify(agent, null, 2))
+      }
+    }
+
+    return { ok: true }
   })
 
   if (process.env.ELECTRON_RENDERER_URL) {

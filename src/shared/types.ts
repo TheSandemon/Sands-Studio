@@ -54,6 +54,95 @@ export type EntityState =
 export interface GridPosition { col: number; row: number }
 export interface FreeformPosition { x: number; y: number }
 
+// ── Game Primitives ────────────────────────────────────────────────────────────
+
+export interface GameTimer {
+  id: string
+  name: string
+  targetTick?: number
+  targetTimeMs?: number
+  recurring?: boolean
+  intervalTicks?: number
+  intervalMs?: number
+  data: Record<string, unknown>
+  createdBy: string
+  createdAt: number
+  paused: boolean
+}
+
+export interface TriggerZone {
+  id: string
+  name: string
+  shape: 'rect' | 'circle'
+  rect?: { col: number; row: number; width: number; height: number }
+  center?: GridPosition | FreeformPosition
+  radius?: number
+  fireOn: 'enter' | 'exit' | 'both'
+  oneShot: boolean
+  entityFilter?: string
+  data: Record<string, unknown>
+  createdBy: string
+  active: boolean
+  entitiesInside: string[]
+}
+
+export interface StatusEffect {
+  id: string
+  name: string
+  entityId: string
+  durationTicks?: number
+  durationMs?: number
+  permanent?: boolean
+  properties: Record<string, unknown>
+  source: string
+  appliedAt: number
+  stackable: boolean
+  icon?: string
+}
+
+export interface Item {
+  id: string
+  name: string
+  type: string
+  tags: string[]
+  properties: Record<string, unknown>
+  spriteTag?: string
+  stackable: boolean
+  quantity: number
+  equipped: boolean
+  equippedSlot?: string
+}
+
+export interface EntityGroup {
+  id: string
+  name: string
+  memberIds: string[]
+  properties: Record<string, unknown>
+  createdBy: string
+}
+
+export interface StateMachine {
+  id: string
+  entityId?: string
+  currentState: string
+  states: string[]
+  transitions: Record<string, string[]>
+  data: Record<string, unknown>
+  createdBy: string
+}
+
+export interface Relationship {
+  id: string
+  fromEntityId: string
+  toEntityId: string
+  type: string
+  bidirectional: boolean
+  properties: Record<string, unknown>
+  createdBy: string
+}
+
+// ── Entity ────────────────────────────────────────────────────────────────────
+
 export interface Entity {
   id: string
   type: string
@@ -66,6 +155,8 @@ export interface Entity {
   visible: boolean
   facing?: 'left' | 'right' | 'up' | 'down'
   layer?: number
+  statusEffects?: StatusEffect[]
+  inventory?: Item[]
 }
 
 export interface Tile {
@@ -92,6 +183,14 @@ export type GameEventType =
   | 'round_started' | 'round_ended' | 'turn_started' | 'turn_ended'
   | 'narration' | 'speech' | 'effect'
   | 'tile_changed' | 'world_property_set'
+  // New subsystem events
+  | 'timer_fired' | 'timer_created' | 'timer_cancelled'
+  | 'trigger_fired' | 'trigger_created' | 'trigger_removed'
+  | 'status_effect_applied' | 'status_effect_removed' | 'status_effect_expired'
+  | 'item_received' | 'item_removed' | 'item_equipped' | 'item_unequipped' | 'item_used' | 'item_transferred'
+  | 'group_created' | 'group_member_added' | 'group_member_removed'
+  | 'state_transition'
+  | 'relationship_created' | 'relationship_removed'
 
 export interface GameEvent {
   id: string; tick: number; type: GameEventType
@@ -104,8 +203,12 @@ export type AIProvider = 'anthropic' | 'openai' | 'minimax' | 'openrouter' | 'cu
 export interface AgentRole {
   id: string; name: string; personality: string
   isOrchestrator: boolean
-  model: string; provider: AIProvider
-  baseURL?: string; apiKey?: string
+  // Optional — if absent, the orchestrator uses global settings from Settings → Agent tab.
+  // This ensures changing settings applies to all agents immediately.
+  model?: string
+  provider?: AIProvider
+  baseURL?: string
+  apiKey?: string
   systemPromptTemplate: string
   tools: string[]
   entityId?: string
@@ -122,6 +225,11 @@ export interface WorldState {
   events: GameEvent[]
   round?: number
   properties?: Record<string, unknown>
+  timers?: Record<string, GameTimer>
+  triggers?: Record<string, TriggerZone>
+  groups?: Record<string, EntityGroup>
+  stateMachines?: Record<string, StateMachine>
+  relationships?: Relationship[]
 }
 
 export type ModuleRendererEvent =
@@ -142,6 +250,39 @@ export type ModuleRendererEvent =
   | { type: 'state_sync'; worldState: WorldState }
   | { type: 'tile_changed'; col: number; row: number; updates: Partial<Tile> }
   | { type: 'world_property_set'; key: string; value: unknown }
+  | { type: 'camera_shake'; intensity: number; duration: number }
+  | { type: 'camera_follow'; entityId: string }
+  | { type: 'screen_flash'; color: string; duration: number }
+  // Timers
+  | { type: 'timer_fired'; timerId: string; timerName: string; data: Record<string, unknown> }
+  | { type: 'timer_created'; timerId: string; timerName: string }
+  | { type: 'timer_cancelled'; timerId: string; timerName: string }
+  // Triggers
+  | { type: 'trigger_created'; triggerId: string; triggerName: string; shape: 'rect' | 'circle'; rect?: TriggerZone['rect']; center?: GridPosition | FreeformPosition; radius?: number }
+  | { type: 'trigger_fired'; triggerId: string; triggerName: string; entityId: string; fireType: 'enter' | 'exit'; data: Record<string, unknown> }
+  | { type: 'trigger_removed'; triggerId: string }
+  // Status Effects
+  | { type: 'status_effect_applied'; entityId: string; effectName: string; icon?: string; duration?: number }
+  | { type: 'status_effect_removed'; entityId: string; effectName: string }
+  | { type: 'status_effect_expired'; entityId: string; effectName: string }
+  // Items
+  | { type: 'item_received'; entityId: string; itemName: string; itemId: string }
+  | { type: 'item_removed'; entityId: string; itemName: string; itemId: string }
+  | { type: 'item_equipped'; entityId: string; itemName: string; slot: string }
+  | { type: 'item_unequipped'; entityId: string; itemName: string }
+  | { type: 'item_used'; entityId: string; itemName: string; targetEntityId?: string }
+  | { type: 'item_transferred'; fromEntityId: string; toEntityId: string; itemName: string }
+  // Groups
+  | { type: 'group_created'; groupId: string; groupName: string }
+  | { type: 'group_member_added'; groupId: string; entityId: string }
+  | { type: 'group_member_removed'; groupId: string; entityId: string }
+  // State Machines
+  | { type: 'state_transition'; machineId: string; entityId?: string; oldState: string; newState: string }
+  // Relationships
+  | { type: 'relationship_created'; fromEntityId: string; toEntityId: string; relType: string }
+  | { type: 'relationship_removed'; fromEntityId: string; toEntityId: string; relType: string }
+  // Pathfinding debug
+  | { type: 'path_highlight'; path: GridPosition[]; color?: string; duration?: number }
 
 export type ModuleStatus = 'idle' | 'loading' | 'running' | 'paused' | 'stopped'
 
@@ -207,8 +348,53 @@ export interface AgentContext {
     // Renderer events
     pushRendererEvent: (event: ModuleRendererEvent) => void
     drainRendererEvents: () => ModuleRendererEvent[]
+    // Timers
+    createTimer: (timer: GameTimer) => ActionResult
+    cancelTimer: (id: string) => ActionResult
+    getTimers: () => GameTimer[]
+    // Triggers
+    createTrigger: (trigger: TriggerZone) => ActionResult
+    removeTrigger: (id: string) => ActionResult
+    getTriggers: () => TriggerZone[]
+    // Status Effects
+    applyStatusEffect: (effect: StatusEffect) => ActionResult
+    removeStatusEffect: (entityId: string, effectName: string) => ActionResult
+    getStatusEffects: (entityId: string) => StatusEffect[]
+    // Inventory
+    addItem: (entityId: string, item: Item) => ActionResult
+    removeItem: (entityId: string, itemId: string) => ActionResult
+    getInventory: (entityId: string) => Item[]
+    equipItem: (entityId: string, itemId: string, slot: string) => ActionResult
+    unequipItem: (entityId: string, itemId: string) => ActionResult
+    transferItem: (fromEntityId: string, toEntityId: string, itemId: string) => ActionResult
+    useItem: (entityId: string, itemId: string, targetEntityId?: string) => ActionResult
+    // Groups
+    createGroup: (group: EntityGroup) => ActionResult
+    removeGroup: (id: string) => ActionResult
+    addToGroup: (groupId: string, entityId: string) => ActionResult
+    removeFromGroup: (groupId: string, entityId: string) => ActionResult
+    getGroup: (id: string) => EntityGroup | undefined
+    getGroups: () => EntityGroup[]
+    getEntityGroups: (entityId: string) => EntityGroup[]
+    // State Machines
+    createStateMachine: (sm: StateMachine) => ActionResult
+    removeStateMachine: (id: string) => ActionResult
+    transitionState: (machineId: string, newState: string, fromAgent?: string) => ActionResult
+    getStateMachine: (id: string) => StateMachine | undefined
+    getStateMachines: () => StateMachine[]
+    // Relationships
+    createRelationship: (rel: Relationship) => ActionResult
+    removeRelationship: (fromEntityId: string, toEntityId: string, type: string) => ActionResult
+    getRelationships: (entityId: string, type?: string) => Relationship[]
+    getRelatedEntities: (entityId: string, type: string) => Entity[]
+    // Pathfinding
+    getGridWorld: () => GridWorld | undefined
   }
   rendererEvents: ModuleRendererEvent[]
   orchestratorActions: OrchestratorAction[]
   currentEntityPosition?: GridPosition | FreeformPosition
+  /** When true, mutation tools queue their action instead of applying it. Used for parallel free-for-all batch execution. */
+  queuing?: boolean
+  /** Called by mutation tools when queuing=true to record the action for later batch application. */
+  queueAction?: (action: { toolName: string; params: Record<string, unknown> }) => void
 }

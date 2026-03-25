@@ -1,0 +1,57 @@
+{
+  "tick": 0,
+  "worldType": "grid",
+  "events": [],
+  "entities": [
+    {
+      "id": "princess-001",
+      "type": "player",
+      "name": "Princess Sara",
+      "spriteTag": "princess",
+      "properties": {
+        "hp": 100,
+        "maxHp": 100,
+        "level": 1,
+        "experience": 0,
+        "experienceToNext": 100,
+        "attack": 10,
+        "defense": 5,
+        "speed": 8,
+        "abilities": [
+          "blessing-of-joy",
+          "sparkle-shield"
+        ],
+        "gold": 0,
+        "inventory": [],
+        "affinities": [],
+        "defeatedCount": 0
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 10,
+        "row": 10
+      }
+    },
+    {
+      "id": "orchestrator-narrator",
+      "type": "narrator",
+      "name": "Story Weaver",
+      "spriteTag": "narrator",
+      "properties": {},
+      "state": "idle",
+      "visible": false,
+      "position": {
+        "col": 0,
+        "row": 0
+      }
+    }
+  ],
+  "grid": {
+    "width": 20,
+    "height": 20,
+    "tiles": [],
+    "tileWidth": 48,
+    "tileHeight": 48
+  }
+}

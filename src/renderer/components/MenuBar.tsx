@@ -21,16 +21,20 @@ interface MenuDef {
 interface MenuBarProps {
   onOpenSettings: () => void
   onCreateModule: () => void
+  onCreateModuleV2: () => void
+  onOpenModuleSettings: (moduleId: string) => void
 }
 
-export default function MenuBar({ onOpenSettings, onCreateModule }: MenuBarProps) {
+export default function MenuBar({ onOpenSettings, onCreateModule, onCreateModuleV2, onOpenModuleSettings }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [moduleList, setModuleList] = useState<string[]>([])
+  const [snapshotIds, setSnapshotIds] = useState<string[]>([])
   const menuBarRef = useRef<HTMLDivElement>(null)
   const addTerminal = useTerminalStore((s) => s.addTerminal)
   const terminals = useTerminalStore((s) => s.terminals)
   const { habitatVisible, terminalVisible, setSettings } = useSettingsStore()
   const moduleStatus = useModuleStore((s) => s.status)
+  const savedSnapshotIds = useModuleStore((s) => s.savedSnapshotIds)
 
   // Safe accessor — guards against moduleAPI not being ready yet
   const api = () => {
@@ -38,13 +42,26 @@ export default function MenuBar({ onOpenSettings, onCreateModule }: MenuBarProps
     return window.moduleAPI
   }
 
-  // Refresh module list when modules menu opens
+  // Refresh module list AND snapshot checks when modules menu opens
   const handleModulesMenuOpen = useCallback(async () => {
     try {
       const list = await api().listModules()
       setModuleList(list)
+      // Check which modules have saved snapshots
+      const snapshotChecks = await Promise.all(
+        list.map(async (id) => {
+          try {
+            return await api().hasSnapshot(id) ? id : null
+          } catch {
+            return null
+          }
+        })
+      )
+      setSnapshotIds(snapshotChecks.filter(Boolean) as string[])
+      useModuleStore.getState().setSavedSnapshotIds(snapshotChecks.filter(Boolean) as string[])
     } catch {
       setModuleList([])
+      setSnapshotIds([])
     }
   }, [])
 
@@ -60,13 +77,26 @@ export default function MenuBar({ onOpenSettings, onCreateModule }: MenuBarProps
     }
   }, [])
 
+  const handleResumeModule = useCallback(async (id: string) => {
+    try {
+      await api().resumeFromSnapshot(id)
+    } catch (err) {
+      alert(`Failed to resume module: ${err}`)
+    }
+  }, [])
+
   const handleCreateModule = useCallback(() => {
     onCreateModule()
   }, [onCreateModule])
 
+  const handleCreateModuleV2 = useCallback(() => {
+    onCreateModuleV2()
+  }, [onCreateModuleV2])
+
   const handleStopModule = useCallback(() => {
     api().stopModule()
-    useModuleStore.getState().reset()
+    // Don't reset store here — let the orchestrator's module:status:'stopped' IPC message
+    // flow naturally to the App's onStatus listener which calls reset().
   }, [])
 
   const MODULES_ITEMS: MenuAction[] = moduleStatus !== 'idle' && moduleStatus !== 'stopped' ? [
@@ -77,14 +107,103 @@ export default function MenuBar({ onOpenSettings, onCreateModule }: MenuBarProps
     { label: 'No Modules', disabled: true },
     { separator: true },
     { label: 'Create Module…', onClick: handleCreateModule },
+    { label: 'Create Module (V2 — cards)', onClick: handleCreateModuleV2 },
   ] : [
-    ...moduleList.map((id) => ({
-      label: id,
-      onClick: () => handleLaunchModule(id),
-    })),
+    // Module entries with settings cog are rendered via custom renderModulesDropdown below
+    // This array only contains the trailing create actions
     { separator: true },
     { label: 'Create Module…', onClick: handleCreateModule },
+    { label: 'Create Module (V2 — cards)', onClick: handleCreateModuleV2 },
   ]
+
+  // Custom renderer for modules dropdown to support settings cog buttons
+  const renderModulesDropdown = () => {
+    const isActive = moduleStatus !== 'idle' && moduleStatus !== 'stopped'
+    return (
+      <div className="menubar-dropdown">
+        {isActive ? (
+          // Running state — show status + stop
+          <>
+            <button className="menubar-dropdown-item" disabled>
+              <span className="menubar-item-label">
+                ▶ {moduleStatus === 'running' ? 'Running...' : moduleStatus === 'paused' ? 'Paused' : 'Loading...'}
+              </span>
+            </button>
+            <hr className="menubar-sep" />
+            <button className="menubar-dropdown-item" onClick={() => { handleStopModule(); setOpenMenu(null) }}>
+              <span className="menubar-item-label">Stop Module</span>
+            </button>
+          </>
+        ) : moduleList.length === 0 ? (
+          // No modules
+          <>
+            <button className="menubar-dropdown-item" disabled>
+              <span className="menubar-item-label">No Modules</span>
+            </button>
+            <hr className="menubar-sep" />
+            <button className="menubar-dropdown-item" onClick={() => { handleCreateModule(); setOpenMenu(null) }}>
+              <span className="menubar-item-label">Create Module…</span>
+            </button>
+            <button className="menubar-dropdown-item" onClick={() => { handleCreateModuleV2(); setOpenMenu(null) }}>
+              <span className="menubar-item-label">Create Module (V2 — cards)</span>
+            </button>
+          </>
+        ) : (
+          // Module list with settings cog
+          <>
+            {moduleList.map((id) => {
+              const hasSnapshot = snapshotIds.includes(id)
+              return (
+                <div key={id} className="menubar-module-row">
+                  {hasSnapshot ? (
+                    <>
+                      <button
+                        className="menubar-dropdown-item menubar-module-item"
+                        onClick={() => { handleResumeModule(id); setOpenMenu(null) }}
+                      >
+                        <span className="menubar-item-label">{id} ▶ Resume</span>
+                      </button>
+                      <button
+                        className="menubar-dropdown-item menubar-module-item menubar-module-fresh"
+                        onClick={() => { handleLaunchModule(id); setOpenMenu(null) }}
+                      >
+                        <span className="menubar-item-label">(fresh)</span>
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      className="menubar-dropdown-item menubar-module-item"
+                      onClick={() => { handleLaunchModule(id); setOpenMenu(null) }}
+                    >
+                      <span className="menubar-item-label">{id}</span>
+                    </button>
+                  )}
+                  <button
+                    className="menubar-module-cog"
+                    title={`Settings for ${id}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onOpenModuleSettings(id)
+                      setOpenMenu(null)
+                    }}
+                  >
+                    ⚙
+                  </button>
+                </div>
+              )
+            })}
+            <hr className="menubar-sep" />
+            <button className="menubar-dropdown-item" onClick={() => { handleCreateModule(); setOpenMenu(null) }}>
+              <span className="menubar-item-label">Create Module…</span>
+            </button>
+            <button className="menubar-dropdown-item" onClick={() => { handleCreateModuleV2(); setOpenMenu(null) }}>
+              <span className="menubar-item-label">Create Module (V2 — cards)</span>
+            </button>
+          </>
+        )}
+      </div>
+    )
+  }
 
   // Build menus dynamically so they capture current store state
   const MENUS: MenuDef[] = [
@@ -258,28 +377,30 @@ export default function MenuBar({ onOpenSettings, onCreateModule }: MenuBarProps
           </button>
 
           {openMenu === menu.id && (
-            <div className="menubar-dropdown">
-              {menu.items.map((item, idx) =>
-                item.separator ? (
-                  <hr key={idx} className="menubar-sep" />
-                ) : (
-                  <button
-                    key={idx}
-                    className="menubar-dropdown-item"
-                    disabled={item.disabled}
-                    onClick={() => {
-                      item.onClick?.()
-                      setOpenMenu(null)
-                    }}
-                  >
-                    <span className="menubar-item-label">{item.label}</span>
-                    {item.shortcut && (
-                      <span className="menubar-item-shortcut">{item.shortcut}</span>
-                    )}
-                  </button>
-                )
-              )}
-            </div>
+            menu.id === 'modules' ? renderModulesDropdown() : (
+              <div className="menubar-dropdown">
+                {menu.items.map((item, idx) =>
+                  item.separator ? (
+                    <hr key={idx} className="menubar-sep" />
+                  ) : (
+                    <button
+                      key={idx}
+                      className="menubar-dropdown-item"
+                      disabled={item.disabled}
+                      onClick={() => {
+                        item.onClick?.()
+                        setOpenMenu(null)
+                      }}
+                    >
+                      <span className="menubar-item-label">{item.label}</span>
+                      {item.shortcut && (
+                        <span className="menubar-item-shortcut">{item.shortcut}</span>
+                      )}
+                    </button>
+                  )
+                )}
+              </div>
+            )
           )}
         </div>
       ))}

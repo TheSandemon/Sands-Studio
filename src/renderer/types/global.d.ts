@@ -27,21 +27,27 @@ declare global {
     moduleAPI: {
       listModules: () => Promise<string[]>
       loadModule: (id: string) => Promise<{ manifest: unknown; worldState: unknown; agents: unknown[]; assetPaths: Record<string, string> }>
-      startModule: () => Promise<void>
+      startModule: (defaults?: { model?: string; apiKey?: string; baseURL?: string }) => Promise<void>
       stopModule: () => void
       pauseModule: () => void
       resumeModule: () => void
+      hasSnapshot: (moduleId: string) => Promise<boolean>
+      resumeFromSnapshot: (moduleId: string, defaults?: { model?: string; apiKey?: string; baseURL?: string }) => Promise<void>
       unloadModule: () => void
       scanAssets: (moduleId: string, assetsPath: string) => Promise<{ tiles: string[]; entities: string[]; effects: string[] }>
       getBootstrapQuestions: (scenarioPrompt: string, opts?: { model?: string; apiKey?: string; baseURL?: string }) => Promise<{ questions: Array<{ id: string; question: string; placeholder?: string }> }>
+      getQuestionSuggestions: (question: string, scenario: string, opts?: { model?: string; apiKey?: string; baseURL?: string }) => Promise<{ suggestions: string[] }>
       generateModuleConfig: (moduleId: string, prompt: string, opts?: { model?: string; apiKey?: string; baseURL?: string }) => Promise<{ manifest: unknown; world: unknown; agents: unknown[] }>
       saveModule: (id: string, data: { manifest: unknown; world: unknown; agents: unknown[] }) => Promise<string>
+      getModuleConfig: (moduleId: string) => Promise<{ manifest: unknown; agents: unknown[] }>
+      saveConfigChanges: (moduleId: string, changes: { manifest?: object; agents?: Array<{ id: string; [key: string]: unknown }> }) => Promise<{ ok: boolean }>
       onEvent: (cb: (event: unknown) => void) => () => void
       onState: (cb: (state: unknown) => void) => () => void
       onAgentStatus: (cb: (roleId: string, status: string) => void) => () => void
       onStatus: (cb: (status: string) => void) => () => void
       onAgentLog: (cb: (entry: unknown) => void) => () => void
       onStats: (cb: (stats: unknown) => void) => () => void
+      onManifest: (cb: (manifest: unknown, assetPaths: Record<string, string>) => void) => () => void
     }
   }
 

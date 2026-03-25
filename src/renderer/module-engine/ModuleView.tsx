@@ -48,6 +48,8 @@ export default function ModuleView({ manifest, onBack }: ModuleViewProps) {
   const [hasAgentActivity, setHasAgentActivity] = useState(false)
   const hasAgentActivityRef = useRef(false)
   const prevAgentStatusesRef = useRef<Record<string, string>>({})
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [pendingEdits, setPendingEdits] = useState<Partial<ModuleManifest> | null>(null)
 
   const addLog = useCallback((msg: string) => {
     setLoadingLog((prev) => [...prev, msg])
@@ -183,6 +185,11 @@ export default function ModuleView({ manifest, onBack }: ModuleViewProps) {
       })
       uiRendererRef.current = uiRenderer
 
+      // Screen flash overlay — a full-canvas rect that fades out
+      const flashOverlay = new Graphics()
+      flashOverlay.zIndex = 1000
+      app.stage.addChild(flashOverlay)
+
       // Game tick loop
       app.ticker.add((ticker) => {
         const delta = ticker.deltaTime
@@ -191,25 +198,68 @@ export default function ModuleView({ manifest, onBack }: ModuleViewProps) {
         entityRenderer.update(delta)
         uiRenderer.tick()
 
+        // Apply camera shake offset to viewport
+        const shake = camera.getShakeOffset()
+        camera.container.x = (camera.container.x || 0) + shake.x
+        camera.container.y = (camera.container.y || 0) + shake.y
+
         // Drain and handle pending renderer events
         const store = useModuleStore.getState()
         const events = store.drainRendererEvents()
         const tileSize = manifest.renderer.gridSize ?? 32
+        let staggerIndex = 0
         for (const event of events) {
           uiRenderer.handleEvent(event)
 
           if (event.type === 'entity_moved') {
-            entityRenderer.animateMove(event.entityId, event.from, event.to, tileSize)
+            // Stagger free-for-all batch moves by 50ms per entity
+            entityRenderer.animateMove(event.entityId, event.from, event.to, tileSize, 400, staggerIndex * 50)
+            staggerIndex++
           }
           if (event.type === 'entity_created') {
             entityRenderer.addEntity(event.entity, tileSize)
+            entityRenderer.animateSpawn(event.entity.id)
           }
           if (event.type === 'entity_removed') {
             entityRenderer.removeEntity(event.entityId)
           }
+          if (event.type === 'entity_died') {
+            entityRenderer.animateDeath(event.entityId)
+          }
           if (event.type === 'tile_changed' && tileMapRef.current) {
             const tile = store.worldState?.grid?.tiles[event.row]?.[event.col]
             if (tile) tileMapRef.current.updateTile(event.col, event.row, tile)
+          }
+          // ── New visual event handlers ──────────────────────────────
+          if (event.type === 'camera_shake') {
+            camera.shake(event.intensity, event.duration)
+          }
+          if (event.type === 'camera_follow') {
+            const sprite = entityRenderer.getSprite(event.entityId)
+            if (sprite) camera.follow(sprite)
+          }
+          if (event.type === 'entity_state_changed') {
+            entityRenderer.applyStateFromEvent(event.entityId, event.state)
+          }
+          if (event.type === 'screen_flash') {
+            // Parse hex color string to number
+            const colorStr = event.color.replace('#', '')
+            const colorNum = parseInt(colorStr, 16) || 0xffffff
+            flashOverlay.clear()
+            flashOverlay.rect(0, 0, canvasWidth, canvasHeight)
+            flashOverlay.fill({ color: colorNum, alpha: 0.6 })
+            // Fade out via alpha animation using ticker
+            let flashAlpha = 0.6
+            const fadeTicker = (t: typeof ticker) => {
+              flashAlpha -= 0.05 * t.deltaTime
+              if (flashAlpha <= 0) {
+                flashOverlay.clear()
+                app.ticker.remove(fadeTicker)
+              } else {
+                flashOverlay.alpha = flashAlpha
+              }
+            }
+            app.ticker.add(fadeTicker)
           }
         }
       })
@@ -463,7 +513,7 @@ export default function ModuleView({ manifest, onBack }: ModuleViewProps) {
           style={{
             position: 'absolute',
             bottom: 12,
-            right: 110,
+            right: 204,
             padding: '6px 16px',
             borderRadius: 4,
             border: '1px solid #ffaa44',
@@ -483,7 +533,7 @@ export default function ModuleView({ manifest, onBack }: ModuleViewProps) {
           style={{
             position: 'absolute',
             bottom: 12,
-            right: 110,
+            right: 204,
             padding: '6px 16px',
             borderRadius: 4,
             border: '1px solid #44ff44',
@@ -497,6 +547,301 @@ export default function ModuleView({ manifest, onBack }: ModuleViewProps) {
           Resume
         </button>
       )}
+
+      {/* Settings button */}
+      <button
+        onClick={() => setSettingsOpen(true)}
+        style={{
+          position: 'absolute',
+          bottom: 12,
+          right: 110,
+          padding: '6px 16px',
+          borderRadius: 4,
+          border: '1px solid #888',
+          background: 'rgba(136,136,136,0.1)',
+          color: '#888',
+          fontFamily: 'JetBrains Mono, monospace',
+          fontSize: 11,
+          cursor: 'pointer',
+        }}
+      >
+        ⚙ Settings
+      </button>
+
+      {/* Settings modal */}
+      {settingsOpen && (
+        <ModuleSettingsModal
+          manifest={manifest}
+          onClose={() => setSettingsOpen(false)}
+          pendingEdits={pendingEdits}
+          setPendingEdits={setPendingEdits}
+          onReload={() => {
+            if (pendingEdits) {
+              window.moduleAPI.saveConfigChanges(manifest.id, pendingEdits)
+                .catch((err) => console.error('[settings] save failed:', err))
+            }
+            setSettingsOpen(false)
+            setPendingEdits(null)
+            window.moduleAPI.unloadModule()
+            setTimeout(async () => {
+              try {
+                const result = await window.moduleAPI.loadModule(manifest.id) as { manifest: ModuleManifest; assetPaths: Record<string, string> }
+                useModuleStore.getState().loadModule(result.manifest, result.assetPaths ?? {})
+              } catch (err) {
+                console.error('[settings] reload failed:', err)
+              }
+            }, 100)
+          }}
+        />
+      )}
     </div>
   )
 }
+
+// ── Module Settings Modal ──────────────────────────────────────────────────────
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  background: '#0d0d1a',
+  border: '1px solid #333',
+  borderRadius: 4,
+  color: '#fff',
+  padding: '6px 8px',
+  fontFamily: 'inherit',
+  fontSize: 12,
+  boxSizing: 'border-box',
+}
+
+const btnStyle: React.CSSProperties = {
+  padding: '6px 16px',
+  borderRadius: 4,
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  fontSize: 12,
+}
+
+interface ModuleSettingsModalProps {
+  manifest: ModuleManifest
+  onClose: () => void
+  pendingEdits: Partial<ModuleManifest> | null
+  setPendingEdits: (edits: Partial<ModuleManifest> | null) => void
+  onReload: () => void
+}
+
+function ModuleSettingsModal({ manifest, onClose, pendingEdits, setPendingEdits, onReload }: ModuleSettingsModalProps) {
+  const [localEdits, setLocalEdits] = useState<Partial<ModuleManifest>>({
+    name: manifest.name,
+    description: manifest.description,
+    pacing: { ...manifest.pacing },
+    renderer: { ...manifest.renderer },
+  })
+
+  const update = (patch: Partial<ModuleManifest>) => {
+    setLocalEdits((prev) => ({ ...prev, ...patch }))
+  }
+
+  const updatePacing = (patch: Partial<ModuleManifest['pacing']>) => {
+    setLocalEdits((prev) => ({
+      ...prev,
+      pacing: { ...prev.pacing!, ...patch },
+    }))
+  }
+
+  const updateRenderer = (patch: Partial<ModuleManifest['renderer']>) => {
+    setLocalEdits((prev) => ({
+      ...prev,
+      renderer: { ...prev.renderer!, ...patch },
+    }))
+  }
+
+  const hasChanges = JSON.stringify(localEdits) !== JSON.stringify({
+    name: manifest.name,
+    description: manifest.description,
+    pacing: manifest.pacing,
+    renderer: manifest.renderer,
+  })
+
+  const apply = () => {
+    setPendingEdits(localEdits)
+    onClose()
+  }
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'rgba(0,0,0,0.7)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+      }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div
+        style={{
+          background: '#1a1a2e',
+          border: '1px solid #333',
+          borderRadius: 8,
+          padding: 24,
+          width: 480,
+          maxHeight: '80vh',
+          overflow: 'auto',
+          fontFamily: 'JetBrains Mono, monospace',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <span style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>Module Settings</span>
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 18 }}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Read-only fields */}
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ color: '#666', fontSize: 10 }}>Module ID</label>
+          <div style={{ color: '#aaa', fontSize: 12 }}>{manifest.id}</div>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ color: '#666', fontSize: 10 }}>Scheduling</label>
+          <div style={{ color: '#aaa', fontSize: 12 }}>{manifest.scheduling} {manifest.hasOrchestrator ? '(has orchestrator)' : ''}</div>
+        </div>
+
+        {/* Editable fields */}
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ color: '#888', fontSize: 10, display: 'block', marginBottom: 4 }}>Name</label>
+          <input
+            value={localEdits.name ?? ''}
+            onChange={(e) => update({ name: e.target.value })}
+            style={{
+              width: '100%',
+              background: '#0d0d1a',
+              border: '1px solid #333',
+              borderRadius: 4,
+              color: '#fff',
+              padding: '6px 8px',
+              fontFamily: 'inherit',
+              fontSize: 12,
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ color: '#888', fontSize: 10, display: 'block', marginBottom: 4 }}>Description</label>
+          <textarea
+            value={localEdits.description ?? ''}
+            onChange={(e) => update({ description: e.target.value })}
+            rows={2}
+            style={{
+              width: '100%',
+              background: '#0d0d1a',
+              border: '1px solid #333',
+              borderRadius: 4,
+              color: '#fff',
+              padding: '6px 8px',
+              fontFamily: 'inherit',
+              fontSize: 12,
+              resize: 'vertical',
+              boxSizing: 'border-box',
+            }}
+          />
+        </div>
+
+        <fieldset style={{ border: '1px solid #333', borderRadius: 4, padding: '8px 12px', marginBottom: 12 }}>
+          <legend style={{ color: '#888', fontSize: 10 }}>Pacing</legend>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <div>
+              <label style={{ color: '#666', fontSize: 10 }}>Burst Cooldown (ms)</label>
+              <input
+                type="number"
+                value={localEdits.pacing?.burstCooldownMs ?? 0}
+                onChange={(e) => updatePacing({ burstCooldownMs: parseInt(e.target.value) || 0 })}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={{ color: '#666', fontSize: 10 }}>Max Requests/Agent</label>
+              <input
+                type="number"
+                value={localEdits.pacing?.maxRequestsPerAgent ?? 0}
+                onChange={(e) => updatePacing({ maxRequestsPerAgent: parseInt(e.target.value) || 0 })}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={{ color: '#666', fontSize: 10 }}>Global RPM Limit</label>
+              <input
+                type="number"
+                value={localEdits.pacing?.globalRpmLimit ?? ''}
+                onChange={(e) => updatePacing({ globalRpmLimit: e.target.value ? parseInt(e.target.value) : undefined })}
+                style={inputStyle}
+                placeholder="optional"
+              />
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset style={{ border: '1px solid #333', borderRadius: 4, padding: '8px 12px', marginBottom: 16 }}>
+          <legend style={{ color: '#888', fontSize: 10 }}>Renderer</legend>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <div>
+              <label style={{ color: '#666', fontSize: 10 }}>Grid Size</label>
+              <input
+                type="number"
+                value={localEdits.renderer?.gridSize ?? 32}
+                onChange={(e) => updateRenderer({ gridSize: parseInt(e.target.value) || 32 })}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={{ color: '#666', fontSize: 10 }}>Background Color</label>
+              <input
+                type="number"
+                value={localEdits.renderer?.backgroundColor ?? 0}
+                onChange={(e) => updateRenderer({ backgroundColor: parseInt(e.target.value) || 0 })}
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="checkbox"
+                id="showGrid"
+                checked={localEdits.renderer?.showGrid ?? true}
+                onChange={(e) => updateRenderer({ showGrid: e.target.checked })}
+              />
+              <label htmlFor="showGrid" style={{ color: '#666', fontSize: 10 }}>Show Grid</label>
+            </div>
+          </div>
+        </fieldset>
+
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ ...btnStyle, background: 'rgba(136,136,136,0.1)', border: '1px solid #555', color: '#888' }}>
+            Cancel
+          </button>
+          <button onClick={apply} disabled={!hasChanges} style={{ ...btnStyle, background: 'rgba(68,136,255,0.1)', border: '1px solid #4488ff', color: '#4488ff', opacity: hasChanges ? 1 : 0.4 }}>
+            Apply & Save
+          </button>
+        </div>
+
+        {pendingEdits && (
+          <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(68,255,68,0.05)', border: '1px solid #44ff44', borderRadius: 4 }}>
+            <div style={{ color: '#44ff44', fontSize: 11, marginBottom: 4 }}>Changes saved — reload to apply</div>
+            <button
+              onClick={onReload}
+              style={{ ...btnStyle, background: 'rgba(68,255,68,0.1)', border: '1px solid #44ff44', color: '#44ff44', fontSize: 11, padding: '4px 12px' }}
+            >
+              Reload Module
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+

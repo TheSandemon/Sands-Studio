@@ -33,6 +33,10 @@ interface ModuleStore {
   bootstrapStatus: 'idle' | 'scanning' | 'generating' | 'done' | 'error'
   bootstrapError: string | null
 
+  // ── Save & Survive ───────────────────────────────────────────────────
+  /** Set of module IDs that have a saved snapshot on disk */
+  savedSnapshotIds: string[]
+
   // ── Actions ──────────────────────────────────────────────────────────
   setStatus: (status: ModuleStatus) => void
   loadModule: (manifest: ModuleManifest, assetPaths?: Record<string, string>) => void
@@ -41,6 +45,7 @@ interface ModuleStore {
   pushRendererEvent: (event: ModuleRendererEvent) => void
   drainRendererEvents: () => ModuleRendererEvent[]
   setBootstrapStatus: (status: ModuleStore['bootstrapStatus'], error?: string) => void
+  setSavedSnapshotIds: (ids: string[]) => void
   reset: () => void
 }
 
@@ -54,6 +59,7 @@ const INITIAL_STATE = {
   pendingEvents: [] as ModuleRendererEvent[],
   bootstrapStatus: 'idle' as const,
   bootstrapError: null,
+  savedSnapshotIds: [] as string[],
 }
 
 export const useModuleStore = create<ModuleStore>((set, get) => ({
@@ -92,6 +98,8 @@ export const useModuleStore = create<ModuleStore>((set, get) => ({
 
   setBootstrapStatus: (bootstrapStatus, bootstrapError) =>
     set({ bootstrapStatus, bootstrapError: bootstrapError ?? null }),
+
+  setSavedSnapshotIds: (ids) => set({ savedSnapshotIds: ids }),
 
   reset: () => set(INITIAL_STATE),
 }))

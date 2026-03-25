@@ -89,3 +89,42 @@
   border-top: 1px solid var(--border);
   margin: 4px 0;
 }
+
+/* ── Module row with settings cog ── */
+.menubar-module-row {
+  display: flex;
+  align-items: center;
+}
+
+.menubar-module-item {
+  flex: 1;
+  min-width: 0;
+}
+
+.menubar-module-fresh {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.menubar-module-cog {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: 3px;
+  margin-right: 4px;
+  transition: background 0.1s, color 0.1s;
+}
+.menubar-module-cog:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+}

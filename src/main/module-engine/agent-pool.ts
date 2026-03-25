@@ -185,25 +185,28 @@ export class AgentPool {
       return this.clients.get(role.id)!
     }
 
+    // Settings defaults always win — agent JSON fields are a fallback, not an override.
+    // This ensures changing Settings → Agent tab applies to ALL agents immediately.
+    const resolvedProvider = this.defaults.provider || role.provider || 'anthropic'
+    const resolvedModel = this.defaults.model || role.model || ''
+    const resolvedBaseURL = this.defaults.baseURL || role.baseURL || ''
+
     const apiKey = role.apiKey
-      ?? (role.provider === 'anthropic' ? process.env.ANTHROPIC_API_KEY : undefined)
       ?? this.defaults.apiKey
+      ?? (resolvedProvider === 'anthropic' ? process.env.ANTHROPIC_API_KEY : undefined)
       ?? ''
     if (!apiKey) {
       throw new Error(
-        `Agent role '${role.id}' (${role.provider}) has no API key. ` +
+        `Agent role '${role.id}' has no API key. ` +
         `Set apiKey in Settings → Agent tab, in the agent JSON, or via ANTHROPIC_API_KEY in the environment.`
       )
     }
 
-    const model = role.model || this.defaults.model || ''
-    const baseURL = role.baseURL || this.defaults.baseURL
-
     let client: AIProviderClient
 
-    switch (role.provider) {
+    switch (resolvedProvider) {
       case 'anthropic':
-        client = new AnthropicProvider(apiKey, baseURL, model)
+        client = new AnthropicProvider(apiKey, resolvedBaseURL, resolvedModel)
         break
 
       case 'minimax':
@@ -211,8 +214,8 @@ export class AgentPool {
           'minimax',
           'minimax',
           apiKey,
-          baseURL ?? 'https://api.minimax.chat/v1',
-          model
+          resolvedBaseURL || 'https://api.minimax.chat/v1',
+          resolvedModel
         )
         break
 
@@ -221,8 +224,8 @@ export class AgentPool {
           'openrouter',
           'openrouter',
           apiKey,
-          baseURL ?? 'https://openrouter.ai/api/v1',
-          model
+          resolvedBaseURL || 'https://openrouter.ai/api/v1',
+          resolvedModel
         )
         break
 
@@ -231,18 +234,22 @@ export class AgentPool {
           'openai',
           'openai',
           apiKey,
-          baseURL ?? 'https://api.openai.com/v1',
-          model
+          resolvedBaseURL || 'https://api.openai.com/v1',
+          resolvedModel
         )
         break
 
       case 'custom':
-        if (!baseURL) throw new Error(`Agent role '${role.id}' has no baseURL for custom provider`)
-        client = new OpenAICompatibleProvider('custom', 'custom', apiKey, baseURL, model)
+        if (!resolvedBaseURL) throw new Error(`Agent role '${role.id}' has no baseURL for custom provider`)
+        client = new OpenAICompatibleProvider('custom', 'custom', apiKey, resolvedBaseURL, resolvedModel)
         break
 
       default:
-        throw new Error(`Unknown AI provider: ${(role as AgentRole).provider}`)
+        if (resolvedBaseURL) {
+          client = new OpenAICompatibleProvider('custom', 'custom', apiKey, resolvedBaseURL, resolvedModel)
+        } else {
+          throw new Error(`Unknown AI provider '${resolvedProvider}' for agent '${role.id}'. Set a default provider in Settings → Agent tab.`)
+        }
     }
 
     this.clients.set(role.id, client)
@@ -251,6 +258,11 @@ export class AgentPool {
 
   getClient(roleId: string): AIProviderClient | undefined {
     return this.clients.get(roleId)
+  }
+
+  /** Pre-warm all clients in parallel — call once at module start to eliminate first-turn cold start. */
+  async prewarmAll(roles: AgentRole[]): Promise<void> {
+    await Promise.all(roles.map((role) => this.createClient(role)))
   }
 
   close(): void {

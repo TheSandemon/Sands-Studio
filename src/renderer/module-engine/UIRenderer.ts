@@ -96,6 +96,7 @@ class NarrationDisplay {
   private charDuration = 30 // ms per character
   private lastCharTime = 0
   private done = false
+  private dismissed = false
   private style: 'dramatic' | 'normal' | 'shout' | 'whisper' = 'normal'
 
   constructor(parent: PIXI.Container, text: string, style: string = 'normal', canvasWidth = 1440, canvasHeight = 900) {
@@ -153,6 +154,15 @@ class NarrationDisplay {
     this.bg.fill({ color: 0x000000, alpha: 0.7 })
   }
 
+  /** Signal that this narration has been dismissed so the queue can advance. */
+  dismiss(): void {
+    this.dismissed = true
+  }
+
+  isDismissed(): boolean {
+    return this.dismissed
+  }
+
   tick(now: number): boolean {
     // Fade in
     if (this.container.alpha < 1) {
@@ -174,19 +184,16 @@ class NarrationDisplay {
       this.done = true
       // Auto-dismiss after 5s of full text displayed
       setTimeout(() => {
-        this.container.alpha = 1
-        const fadeOut = setInterval(() => {
-          this.container.alpha -= 0.1
-          if (this.container.alpha <= 0) {
-            clearInterval(fadeOut)
-            this.container.destroy({ children: true })
-          }
-        }, 50)
+        this.dismissed = true
       }, 5000)
       return false
     }
 
     return false
+  }
+
+  destroy(): void {
+    this.container.destroy({ children: true })
   }
 }
 
@@ -198,6 +205,7 @@ export class UIRenderer {
   private logTexts: PIXI.Text[] = []
   private speechBubbles = new Map<string, SpeechBubble>()
   private narration: NarrationDisplay | null = null
+  private narrationQueue: Array<{ text: string; style?: string }> = []
   private effects = new Map<string, PIXI.Container>()
   private assetResolver: (tag: string, category: 'effect') => PIXI.Texture | null
   private canvasWidth: number
@@ -207,6 +215,7 @@ export class UIRenderer {
   private getEntityScreenPosFn: ((entityId: string) => { x: number; y: number } | null) | null = null
 
   private static readonly MAX_LOG_LINES = 6
+  private static readonly MAX_NARRATION_QUEUE = 5
 
   constructor(
     parent: PIXI.Container,
@@ -253,8 +262,14 @@ export class UIRenderer {
       }
 
       case 'narration': {
-        this.narration?.container.destroy({ children: true })
-        this.narration = new NarrationDisplay(this.container, event.text, event.style, this.canvasWidth, this.canvasHeight)
+        // If narration is currently showing, queue the new one instead of replacing
+        if (this.narration !== null) {
+          if (this.narrationQueue.length < UIRenderer.MAX_NARRATION_QUEUE) {
+            this.narrationQueue.push({ text: event.text, style: event.style })
+          }
+        } else {
+          this.narration = new NarrationDisplay(this.container, event.text, event.style, this.canvasWidth, this.canvasHeight)
+        }
         this.addLogLine(`[${event.style ?? 'narration'}] ${event.text.slice(0, 60)}`)
         break
       }
@@ -298,6 +313,70 @@ export class UIRenderer {
 
       case 'turn_started': {
         this.addLogLine(`→ Turn: ${event.agentRoleId}`)
+        break
+      }
+
+      // ── New subsystem events ──────────────────────────────────────────
+
+      case 'timer_fired': {
+        this.addLogLine(`⏱ Timer: ${event.timerName}`)
+        break
+      }
+
+      case 'trigger_fired': {
+        this.addLogLine(`⚡ Trigger: ${event.triggerName} (${event.fireType} by ${event.entityId})`)
+        break
+      }
+
+      case 'status_effect_applied': {
+        this.addLogLine(`✦ ${event.entityId} +${event.effectName}`)
+        this.entityRenderer?.flashStatusEffect(event.entityId, 0x8844ff)
+        break
+      }
+
+      case 'status_effect_expired': {
+        this.addLogLine(`✧ ${event.entityId} -${event.effectName}`)
+        break
+      }
+
+      case 'status_effect_removed': {
+        this.addLogLine(`✧ ${event.entityId} -${event.effectName}`)
+        break
+      }
+
+      case 'item_received': {
+        this.addLogLine(`📦 ${event.entityId} got ${event.itemName}`)
+        break
+      }
+
+      case 'item_equipped': {
+        this.addLogLine(`⚔ ${event.entityId} equipped ${event.itemName} [${event.slot}]`)
+        break
+      }
+
+      case 'item_used': {
+        this.addLogLine(`🧪 ${event.entityId} used ${event.itemName}`)
+        break
+      }
+
+      case 'item_transferred': {
+        this.addLogLine(`↔ ${event.itemName}: ${event.fromEntityId} → ${event.toEntityId}`)
+        break
+      }
+
+      case 'state_transition': {
+        const entity = event.entityId ? ` (${event.entityId})` : ''
+        this.addLogLine(`⚙ ${event.machineId}${entity}: ${event.oldState} → ${event.newState}`)
+        break
+      }
+
+      case 'group_created': {
+        this.addLogLine(`👥 Group: ${event.groupName}`)
+        break
+      }
+
+      case 'relationship_created': {
+        this.addLogLine(`🔗 ${event.fromEntityId} ${event.relType} ${event.toEntityId}`)
         break
       }
     }
@@ -379,8 +458,19 @@ export class UIRenderer {
       }
     }
 
-    // Update narration
-    this.narration?.tick(now)
+    // Update narration — drain queue when current narration is dismissed
+    if (this.narration) {
+      this.narration.tick(now)
+      if (this.narration.isDismissed()) {
+        this.narration.destroy()
+        this.narration = null
+        // Advance to next in queue
+        if (this.narrationQueue.length > 0) {
+          const next = this.narrationQueue.shift()!
+          this.narration = new NarrationDisplay(this.container, next.text, next.style, this.canvasWidth, this.canvasHeight)
+        }
+      }
+    }
   }
 
   updateCanvasSize(width: number, height: number): void {

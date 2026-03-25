@@ -1,0 +1,414 @@
+{
+  "tick": 0,
+  "worldType": "grid",
+  "events": [],
+  "entities": [
+    {
+      "id": "fire-hill",
+      "type": "anthill",
+      "name": "Fire Anthill",
+      "spriteTag": "anthill",
+      "properties": {
+        "hp": 200,
+        "maxHp": 200,
+        "colony": "fire",
+        "foodProductionRate": 5
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 2,
+        "row": 7
+      }
+    },
+    {
+      "id": "carpenter-hill",
+      "type": "anthill",
+      "name": "Carpenter Anthill",
+      "spriteTag": "anthill",
+      "properties": {
+        "hp": 200,
+        "maxHp": 200,
+        "colony": "carpenter",
+        "foodProductionRate": 5
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 17,
+        "row": 7
+      }
+    },
+    {
+      "id": "fire-1",
+      "type": "ant",
+      "name": "Fire Soldier Alpha",
+      "spriteTag": "ant",
+      "properties": {
+        "hp": 30,
+        "maxHp": 30,
+        "attack": 8,
+        "colony": "fire",
+        "species": "fire",
+        "speed": 2,
+        "unitType": "soldier"
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 3,
+        "row": 6
+      }
+    },
+    {
+      "id": "fire-2",
+      "type": "ant",
+      "name": "Fire Soldier Beta",
+      "spriteTag": "ant",
+      "properties": {
+        "hp": 30,
+        "maxHp": 30,
+        "attack": 8,
+        "colony": "fire",
+        "species": "fire",
+        "speed": 2,
+        "unitType": "soldier"
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 3,
+        "row": 8
+      }
+    },
+    {
+      "id": "fire-3",
+      "type": "ant",
+      "name": "Fire Scout",
+      "spriteTag": "ant",
+      "properties": {
+        "hp": 20,
+        "maxHp": 20,
+        "attack": 5,
+        "colony": "fire",
+        "species": "fire",
+        "speed": 3,
+        "unitType": "scout"
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 4,
+        "row": 7
+      }
+    },
+    {
+      "id": "fire-4",
+      "type": "ant",
+      "name": "Fire Warrior",
+      "spriteTag": "ant",
+      "properties": {
+        "hp": 35,
+        "maxHp": 35,
+        "attack": 10,
+        "colony": "fire",
+        "species": "fire",
+        "speed": 2,
+        "unitType": "warrior"
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 2,
+        "row": 5
+      }
+    },
+    {
+      "id": "fire-5",
+      "type": "ant",
+      "name": "Fire Warrior",
+      "spriteTag": "ant",
+      "properties": {
+        "hp": 35,
+        "maxHp": 35,
+        "attack": 10,
+        "colony": "fire",
+        "species": "fire",
+        "speed": 2,
+        "unitType": "warrior"
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 2,
+        "row": 9
+      }
+    },
+    {
+      "id": "fire-6",
+      "type": "ant",
+      "name": "Fire Drone",
+      "spriteTag": "ant",
+      "properties": {
+        "hp": 25,
+        "maxHp": 25,
+        "attack": 4,
+        "colony": "fire",
+        "species": "fire",
+        "speed": 2,
+        "unitType": "drone"
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 4,
+        "row": 5
+      }
+    },
+    {
+      "id": "carpenter-1",
+      "type": "ant",
+      "name": "Carpenter Soldier Alpha",
+      "spriteTag": "ant",
+      "properties": {
+        "hp": 28,
+        "maxHp": 28,
+        "attack": 7,
+        "colony": "carpenter",
+        "species": "carpenter",
+        "speed": 2,
+        "unitType": "soldier"
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 16,
+        "row": 6
+      }
+    },
+    {
+      "id": "carpenter-2",
+      "type": "ant",
+      "name": "Carpenter Soldier Beta",
+      "spriteTag": "ant",
+      "properties": {
+        "hp": 28,
+        "maxHp": 28,
+        "attack": 7,
+        "colony": "carpenter",
+        "species": "carpenter",
+        "speed": 2,
+        "unitType": "soldier"
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 16,
+        "row": 8
+      }
+    },
+    {
+      "id": "carpenter-3",
+      "type": "ant",
+      "name": "Carpenter Scout",
+      "spriteTag": "ant",
+      "properties": {
+        "hp": 22,
+        "maxHp": 22,
+        "attack": 6,
+        "colony": "carpenter",
+        "species": "carpenter",
+        "speed": 3,
+        "unitType": "scout"
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 15,
+        "row": 7
+      }
+    },
+    {
+      "id": "carpenter-4",
+      "type": "ant",
+      "name": "Carpenter Warrior",
+      "spriteTag": "ant",
+      "properties": {
+        "hp": 32,
+        "maxHp": 32,
+        "attack": 9,
+        "colony": "carpenter",
+        "species": "carpenter",
+        "speed": 2,
+        "unitType": "warrior"
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 17,
+        "row": 5
+      }
+    },
+    {
+      "id": "carpenter-5",
+      "type": "ant",
+      "name": "Carpenter Warrior",
+      "spriteTag": "ant",
+      "properties": {
+        "hp": 32,
+        "maxHp": 32,
+        "attack": 9,
+        "colony": "carpenter",
+        "species": "carpenter",
+        "speed": 2,
+        "unitType": "warrior"
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 17,
+        "row": 9
+      }
+    },
+    {
+      "id": "carpenter-6",
+      "type": "ant",
+      "name": "Carpenter Drone",
+      "spriteTag": "ant",
+      "properties": {
+        "hp": 24,
+        "maxHp": 24,
+        "attack": 5,
+        "colony": "carpenter",
+        "species": "carpenter",
+        "speed": 2,
+        "unitType": "drone"
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 15,
+        "row": 5
+      }
+    },
+    {
+      "id": "food-1",
+      "type": "food",
+      "name": "Food Crumb A",
+      "spriteTag": "food",
+      "properties": {
+        "amount": 50,
+        "nutritionalValue": 10
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 10,
+        "row": 3
+      }
+    },
+    {
+      "id": "food-2",
+      "type": "food",
+      "name": "Food Crumb B",
+      "spriteTag": "food",
+      "properties": {
+        "amount": 50,
+        "nutritionalValue": 10
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 10,
+        "row": 11
+      }
+    },
+    {
+      "id": "food-3",
+      "type": "food",
+      "name": "Food Cluster",
+      "spriteTag": "food",
+      "properties": {
+        "amount": 80,
+        "nutritionalValue": 15
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 10,
+        "row": 7
+      }
+    },
+    {
+      "id": "food-4",
+      "type": "food",
+      "name": "Scattered Food",
+      "spriteTag": "food",
+      "properties": {
+        "amount": 30,
+        "nutritionalValue": 8
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 6,
+        "row": 10
+      }
+    },
+    {
+      "id": "food-5",
+      "type": "food",
+      "name": "Scattered Food",
+      "spriteTag": "food",
+      "properties": {
+        "amount": 30,
+        "nutritionalValue": 8
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 13,
+        "row": 4
+      }
+    },
+    {
+      "id": "food-6",
+      "type": "food",
+      "name": "Food Pile",
+      "spriteTag": "food",
+      "properties": {
+        "amount": 60,
+        "nutritionalValue": 12
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 7,
+        "row": 7
+      }
+    },
+    {
+      "id": "food-7",
+      "type": "food",
+      "name": "Food Pile",
+      "spriteTag": "food",
+      "properties": {
+        "amount": 60,
+        "nutritionalValue": 12
+      },
+      "state": "idle",
+      "visible": true,
+      "position": {
+        "col": 12,
+        "row": 7
+      }
+    }
+  ],
+  "grid": {
+    "width": 20,
+    "height": 15,
+    "tileWidth": 48,
+    "tileHeight": 48,
+    "tiles": []
+  }
+}

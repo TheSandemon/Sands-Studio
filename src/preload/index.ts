@@ -59,13 +59,22 @@ const moduleAPI = {
   stopModule: () => ipcRenderer.send('module:stop'),
   pauseModule: () => ipcRenderer.send('module:pause'),
   resumeModule: () => ipcRenderer.send('module:resume'),
+  hasSnapshot: (moduleId: string) => ipcRenderer.invoke('module:has-snapshot', moduleId),
+  resumeFromSnapshot: (moduleId: string, defaults?: { model?: string; apiKey?: string; baseURL?: string }) =>
+    ipcRenderer.invoke('module:resume-from-snapshot', moduleId, defaults),
   scanAssets: (moduleId: string, assetsPath: string) =>
     ipcRenderer.invoke('module:scan-assets', moduleId, assetsPath),
   getBootstrapQuestions: (scenarioPrompt: string, opts?: { model?: string; apiKey?: string; baseURL?: string }) =>
     ipcRenderer.invoke('module:bootstrap-questions', scenarioPrompt, opts),
+  getQuestionSuggestions: (question: string, scenario: string, opts?: { model?: string; apiKey?: string; baseURL?: string }) =>
+    ipcRenderer.invoke('module:bootstrap-question-suggestions', question, scenario, opts),
   generateModuleConfig: (moduleId: string, prompt: string, opts?: { model?: string; apiKey?: string; baseURL?: string }) =>
     ipcRenderer.invoke('module:bootstrap', moduleId, prompt, opts),
   saveModule: (id: string, data: object) => ipcRenderer.invoke('module:save', id, data),
+  getModuleConfig: (moduleId: string) =>
+    ipcRenderer.invoke('module:getConfig', moduleId),
+  saveConfigChanges: (moduleId: string, changes: object) =>
+    ipcRenderer.invoke('module:saveConfigChanges', moduleId, changes),
   onEvent: (cb: (event: unknown) => void) => {
     const h = (_: Electron.IpcRendererEvent, event: unknown) => cb(event)
     ipcRenderer.on('module:event', h)
@@ -95,6 +104,11 @@ const moduleAPI = {
     const h = (_: Electron.IpcRendererEvent, stats: unknown) => cb(stats)
     ipcRenderer.on('module:stats', h)
     return () => ipcRenderer.off('module:stats', h)
+  },
+  onManifest: (cb: (manifest: unknown, assetPaths: Record<string, string>) => void) => {
+    const h = (_: Electron.IpcRendererEvent, manifest: unknown, assetPaths: Record<string, string>) => cb(manifest, assetPaths)
+    ipcRenderer.on('module:manifest', h)
+    return () => ipcRenderer.off('module:manifest', h)
   },
   unloadModule: () => ipcRenderer.send('module:unload'),
 }

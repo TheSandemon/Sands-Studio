@@ -78,6 +78,19 @@ export async function loadModule(id: string): Promise<LoadedModule> {
     worldState = raw as WorldState
   }
 
+  // Initialize new subsystem fields with defaults (backward compat)
+  if (!worldState.timers) worldState.timers = {}
+  if (!worldState.triggers) worldState.triggers = {}
+  if (!worldState.groups) worldState.groups = {}
+  if (!worldState.stateMachines) worldState.stateMachines = {}
+  if (!worldState.relationships) worldState.relationships = []
+
+  // Initialize entity-level fields
+  for (const entity of Object.values(worldState.entities)) {
+    if (!entity.statusEffects) entity.statusEffects = []
+    if (!entity.inventory) entity.inventory = []
+  }
+
   // Load agent roles
   const agentsDir = path.join(modulePath, manifest.agents ?? 'agents')
   const agents: AgentRole[] = []
@@ -223,7 +236,7 @@ async function callMessagesAPI(params: {
 function deriveProvider(baseURL?: string): string {
   if (!baseURL || baseURL.includes('anthropic.com')) return 'anthropic'
   if (baseURL.includes('openai.com')) return 'openai'
-  if (baseURL.includes('minimax.chat')) return 'minimax'
+  if (baseURL.includes('minimax.chat') || baseURL.includes('minimax.io')) return 'minimax'
   if (baseURL.includes('openrouter.ai')) return 'openrouter'
   return 'custom'
 }
@@ -290,17 +303,32 @@ Generate a complete module configuration. Respond with ONLY a JSON object (no ma
 
 3. "agents" — array of agent objects each with:
    - id, name, personality, isOrchestrator
-   - model: "${input.model || ''}"
-   - provider: "${deriveProvider(input.baseURL)}"   ← MUST be exactly one of: anthropic | openai | minimax | openrouter | custom${input.baseURL && deriveProvider(input.baseURL) !== 'anthropic' ? `\n   - baseURL: "${input.baseURL}"` : '\n   - do NOT include baseURL for anthropic provider'}
-   - Do NOT include apiKey in any agent JSON — keys are provided at runtime via environment
-   - systemPromptTemplate: include {{worldState}}, {{recentEvents}}, {{role}}, {{personality}} placeholders
+   - systemPromptTemplate: include {{worldState}}, {{recentEvents}}, {{role}}, {{personality}} placeholders. The systemPromptTemplate should drive VISIBLE GAMEPLAY — always include a requirement that the agent calls move_entity/narrate/speech bubble every turn.
    - tools: array of tool names this agent can call
    - entityId: id of the entity this agent controls (if applicable)
+   - Do NOT include model, provider, baseURL, or apiKey — these are injected at runtime from the global settings in Settings → Agent tab. Your JSON must NOT have these fields.
 
 Rules:
 - "orchestrated" scheduling needs exactly 1 agent with isOrchestrator: true (the DM/narrator)
-- DM tools: narrate, spawn_entity, give_turn, end_round, move_entity, create_entity, damage_entity, get_world_state, describe_scene
-- Player/peer agent tools: move_entity, get_world_state, describe_scene, show_speech_bubble, narrate
+- DM/orchestrator tools — include ALL core tools plus relevant game primitives:
+  Core: get_world_state, describe_scene, move_entity, create_entity, remove_entity, update_entity, damage_entity, heal_entity, kill_entity, set_entity_state, trigger_animation, show_speech_bubble, show_effect, narrate, spawn_entity
+  Orchestrator: give_turn, end_round, pause_module, resume_module
+  Sequencing: wait_for_animations (also: mutation tools like move_entity, damage_entity, narrate accept an optional "delay" param in ms for cinematic sequencing)
+  Timers: create_timer, cancel_timer, get_timers (schedule recurring/one-shot game events)
+  Triggers: create_trigger, remove_trigger, get_triggers (spatial zones that fire when entities enter/exit)
+  Status Effects: apply_status_effect, remove_status_effect, get_status_effects (buffs/debuffs with durations)
+  Inventory: give_item, remove_item, get_inventory, equip_item, unequip_item, transfer_item, use_item
+  Groups: create_group, add_to_group, remove_from_group, get_group, get_groups, get_entity_groups
+  Pathfinding: find_path, get_path_distance (A* grid pathfinding)
+  State Machines: create_state_machine, transition_state, get_state_machine, get_state_machines (e.g. door locked→unlocked)
+  Relationships: create_relationship, remove_relationship, get_relationships, get_related_entities (entity-to-entity links)
+  Pick the tools relevant to the scenario — a simple arena fight may only need core + sequencing, while an RPG needs inventory, status effects, groups, and state machines.
+- Player/peer agent tools — include core actions plus relevant query/interaction tools:
+  Core: move_entity, damage_entity, show_speech_bubble, narrate, get_world_state, describe_scene, get_entity, get_entities_nearby, get_entities_by_type
+  Inventory: get_inventory, equip_item, unequip_item, use_item (interact with own items)
+  Queries: get_status_effects, get_entity_groups, find_path, get_path_distance
+  Sequencing: wait_for_animations
+  Pick the tools relevant to the scenario and the agent's role.
 - Use spriteTag values that match your available assets when possible
 
 Respond with ONLY valid JSON. No markdown fences.`
@@ -320,7 +348,22 @@ Respond with ONLY valid JSON. No markdown fences.`
   // Strip markdown code fences if present
   jsonStr = jsonStr.replace(/^```json\s*/i, '').replace(/\s*```$/, '')
 
-  const generated = JSON.parse(jsonStr)
+  let generated: unknown
+  try {
+    generated = JSON.parse(jsonStr)
+  } catch {
+    // Try to salvage truncated JSON by finding the last complete object
+    const match = jsonStr.match(/\{[\s\S]*\}/)
+    if (match) {
+      try {
+        generated = JSON.parse(match[0])
+      } catch {
+        throw new Error(`Malformed JSON at position ${jsonStr.length}: "${jsonStr.slice(0, 200)}"`)
+      }
+    } else {
+      throw new Error(`Malformed JSON: "${jsonStr.slice(0, 200)}"`)
+    }
+  }
 
   // Convert entity arrays to maps in world
   if (Array.isArray(generated.world.entities)) {
@@ -351,11 +394,44 @@ export async function getBootstrapQuestions(input: {
     baseURL: input.baseURL,
     model: input.model ?? '',
     system: 'You generate focused clarifying questions for game module design. Output ONLY valid JSON, no markdown.',
-    userContent: `A user wants to create an AI agent game module:\n"${input.scenarioPrompt}"\n\nGenerate 4-6 targeted questions that will help design a well-rounded module. Cover: number/type of agents, scheduling style (does a DM direct action or do agents act freely), win/end conditions, tone/mood, any key mechanics or rules the AI agents should follow.\n\nOutput JSON: { "questions": [{ "id": "q1", "question": "...", "placeholder": "e.g. ..." }] }`,
+    userContent: `A user wants to create an AI agent game module:\n"${input.scenarioPrompt}"\n\nGenerate 10-12 targeted yes/no or multiple-choice design questions. Each question must be answerable in 1-5 words. Cover ALL of these topics: scheduling style (orchestrated vs free-for-all vs round-robin), number of agents (2-4 is good), agent types (warriors, monsters, explorers, etc.), tone/mood (serious, comedic, dark, whimsical), win condition, lose condition, combat style (violent, peaceful, strategic), time pressure (real-time, turn-based, unlimited), world type (grid, freeform, hybrid), asset needs (tiles, entities, effects), module duration (short demo, long campaign), replayability.\n\nAlso include 2-3 questions about game primitives:\n- Should entities have inventories with items? (yes/no)\n- Should entities have status effects like buffs/debuffs? (yes/no)\n- Are there spatial triggers, traps, or zone effects? (yes/no)\n- Does the game use teams/factions/groups? (yes/no)\n- Are there doors, quest states, or lockable objects needing state machines? (yes/no)\n\nEach question should be a specific design decision — not open-ended. "How many agents?" not "Tell me about your agents."\n\nOutput JSON: { "questions": [{ "id": "q1", "question": "...", "placeholder": "e.g. 3-4 agents" }] }`,
     maxTokens: 4096,
   })
   const jsonStr = text.trim().replace(/^```json\s*/i, '').replace(/\s*```$/, '')
+  if (!jsonStr) throw new Error('Empty response from AI')
   return JSON.parse(jsonStr)
+}
+
+export async function getQuestionSuggestions(input: {
+  question: string
+  scenario: string
+  model?: string
+  apiKey?: string
+  baseURL?: string
+}): Promise<{ suggestions: string[] }> {
+  const text = await callMessagesAPI({
+    apiKey: input.apiKey ?? process.env.ANTHROPIC_API_KEY ?? '',
+    baseURL: input.baseURL,
+    model: input.model ?? '',
+    system: 'You are a game design assistant. Give 3 concise, distinct answer options for the following question. Output ONLY valid JSON, no markdown.',
+    userContent: `Scenario: "${input.scenario}"\nQuestion: "${input.question}"\n\nGenerate 3 distinct, concise answer options (1-5 words each) that represent different valid choices for this design decision.\n\nOutput JSON: { "suggestions": ["Option A", "Option B", "Option C"] }`,
+    maxTokens: 1024,
+  })
+  const jsonStr = text.trim().replace(/^```json\s*/i, '').replace(/\s*```$/, '')
+  if (!jsonStr) throw new Error('Empty response from AI for suggestions')
+  // Guard against truncated JSON — if parse fails, try to salvage by finding the last complete object
+  try {
+    return JSON.parse(jsonStr)
+  } catch {
+    // Try to find a valid JSON object or array substring
+    const match = jsonStr.match(/\{[\s\S]*\}/)
+    if (match) {
+      const partial = JSON.parse(match[0])
+      // Only return if it has the expected key
+      if (partial && typeof partial === 'object') return partial
+    }
+    throw new Error(`Malformed JSON from AI: "${jsonStr.slice(0, 100)}"`)
+  }
 }
 
 export function saveBootstrap(
