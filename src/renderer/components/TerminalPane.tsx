@@ -3,10 +3,11 @@
  *
  * Renders one real PTY terminal using xterm.js.
  * Wires PTY data ↔ xterm and reports output activity back to the store.
- * All visual settings (font, cursor, theme) are driven by useSettingsStore.
+ * Visual settings (font, cursor, theme) are driven by useSettingsStore with
+ * per-shell overrides from session.shellConfig.
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { Terminal } from '@xterm/xterm'
 import type { ITheme } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
@@ -17,9 +18,15 @@ import { useSettingsStore } from '../store/useSettingsStore'
 import AgentChat from './AgentChat'
 import ResizeHandle from './ResizeHandle'
 import './TerminalPane.css'
+import type { ColorScheme } from '../../shared/habitatTypes'
 
 interface Props {
   session: TerminalSession
+  onOpenShellSettings?: (sessionId: string) => void
+}
+
+export interface TerminalPaneRef {
+  serializeBuffer: () => string
 }
 
 const STATE_COLOR: Record<string, string> = {
@@ -76,17 +83,37 @@ const LIGHT_BASE: ITheme = {
   brightWhite:   '#333355'
 }
 
-function buildTheme(isDark: boolean, accentColor: string): ITheme {
-  return { ...(isDark ? DARK_BASE : LIGHT_BASE), cursor: accentColor }
+function buildTheme(isDark: boolean, accentColor: string, colorScheme?: ColorScheme): ITheme {
+  const base = isDark ? DARK_BASE : LIGHT_BASE
+  return {
+    ...base,
+    ...colorScheme,
+    cursor: colorScheme?.cursor ?? accentColor,
+  }
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function TerminalPane({ session }: Props) {
+const TerminalPane = forwardRef<TerminalPaneRef, Props>(({ session, onOpenShellSettings }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const paneRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
+
+  useImperativeHandle(ref, () => ({
+    serializeBuffer: () => {
+      if (!xtermRef.current) return ''
+      try {
+        if (typeof xtermRef.current.serialize === 'function') {
+          return xtermRef.current.serialize({ scrollback: 1000 }) ?? ''
+        }
+        return xtermRef.current.getSelection?.() ?? ''
+      } catch {
+        return ''
+      }
+    }
+  }), [xtermRef])
+
   const [paneWidth,  setPaneWidth]  = useState<number | undefined>(undefined)
   const [paneHeight, setPaneHeight] = useState<number | undefined>(undefined)
 
@@ -95,11 +122,22 @@ export default function TerminalPane({ session }: Props) {
   const setState = useTerminalStore((s) => s.setState)
   const creatureName = useTerminalStore((s) => s.terminals.find((t) => t.id === session.id)?.creatureName)
 
-  // ── Settings ──────────────────────────────────────────────────────────────
-  const fontSize            = useSettingsStore((s) => s.fontSize)
-  const fontFamily          = useSettingsStore((s) => s.fontFamily)
-  const scrollback          = useSettingsStore((s) => s.scrollback)
-  const cursorStyle         = useSettingsStore((s) => s.cursorStyle)
+  // ── Settings (global + per-shell merge) ──────────────────────────────────
+  const shellConfig = session.shellConfig
+
+  const globalFontSize   = useSettingsStore((s) => s.fontSize)
+  const globalFontFamily = useSettingsStore((s) => s.fontFamily)
+  const globalScrollback = useSettingsStore((s) => s.scrollback)
+  const globalCursorStyle = useSettingsStore((s) => s.cursorStyle)
+  const globalBellSound  = useSettingsStore((s) => s.bellSound)
+
+  const fontSize    = shellConfig?.fontSize    ?? globalFontSize
+  const fontFamily  = shellConfig?.fontFamily ?? globalFontFamily
+  const scrollback  = shellConfig?.scrollback  ?? globalScrollback
+  const cursorStyle = shellConfig?.cursorStyle ?? globalCursorStyle
+  const bellSound   = shellConfig?.bellSound   ?? globalBellSound
+  const colorScheme = shellConfig?.colorScheme
+
   const showTerminalHeaders = useSettingsStore((s) => s.showTerminalHeaders)
   const confirmBeforeClose  = useSettingsStore((s) => s.confirmBeforeClosing)
   const theme               = useSettingsStore((s) => s.theme)
@@ -120,18 +158,20 @@ export default function TerminalPane({ session }: Props) {
   }, [])
 
   // ── Mount xterm, create PTY, wire everything together ─────────────────────
-  // Uses settings values at mount time; reactive effects handle later changes.
+  // Uses merged global + per-shell settings at mount time; reactive effects handle later changes.
   useEffect(() => {
     if (!containerRef.current) return
 
     const s = useSettingsStore.getState()
+    const sc = session.shellConfig
     const term = new Terminal({
       cursorBlink: true,
-      fontFamily:  s.fontFamily,
-      fontSize:    s.fontSize,
-      scrollback:  s.scrollback,
-      cursorStyle: s.cursorStyle,
-      theme: buildTheme(s.theme === 'dark', s.accentColor),
+      fontFamily:  sc?.fontFamily ?? s.fontFamily,
+      fontSize:    sc?.fontSize   ?? s.fontSize,
+      scrollback:  sc?.scrollback ?? s.scrollback,
+      cursorStyle: sc?.cursorStyle ?? s.cursorStyle,
+      bellSoundEnabled: sc?.bellSound ?? true,
+      theme: buildTheme(s.theme === 'dark', s.accentColor, sc?.colorScheme),
     })
 
     const fitAddon = new FitAddon()
@@ -142,7 +182,13 @@ export default function TerminalPane({ session }: Props) {
     xtermRef.current = term
     fitRef.current = fitAddon
 
-    window.terminalAPI.create(session.id)
+    if (sc?.preCreated) {
+      // PTY already created by main process (e.g. habitat:apply) — just wire up listeners
+    } else if (sc) {
+      window.terminalAPI.createWithConfig(session.id, sc)
+    } else {
+      window.terminalAPI.create(session.id)
+    }
 
     const offData = window.terminalAPI.onData((id, data) => {
       if (id !== session.id) return
@@ -202,8 +248,13 @@ export default function TerminalPane({ session }: Props) {
 
   useEffect(() => {
     if (!xtermRef.current) return
-    xtermRef.current.options.theme = buildTheme(theme === 'dark', accentColor)
-  }, [theme, accentColor])
+    xtermRef.current.options.theme = buildTheme(theme === 'dark', accentColor, colorScheme)
+  }, [theme, accentColor, colorScheme])
+
+  useEffect(() => {
+    if (!xtermRef.current) return
+    xtermRef.current.options.bellSoundEnabled = bellSound
+  }, [bellSound])
 
   // ── Close handler ─────────────────────────────────────────────────────────
 
@@ -232,6 +283,15 @@ export default function TerminalPane({ session }: Props) {
                 style={{ background: STATE_COLOR[session.state] ?? '#444' }}
               />
               <span className="terminal-name">{displayName}</span>
+              {onOpenShellSettings && (
+                <button
+                  className="terminal-cog"
+                  title="Shell Settings"
+                  onClick={() => onOpenShellSettings(session.id)}
+                >
+                  ⚙
+                </button>
+              )}
               <button className="terminal-close" onClick={handleClose}>×</button>
             </div>
           )}
@@ -247,4 +307,6 @@ export default function TerminalPane({ session }: Props) {
       <ResizeHandle direction="horizontal" onResize={handleHeightResize} />
     </div>
   )
-}
+})
+
+export default TerminalPane

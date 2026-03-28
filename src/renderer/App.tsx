@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Habitat from './components/Habitat'
 import TerminalPane from './components/TerminalPane'
 import WindowControls from './components/WindowControls'
@@ -7,11 +7,16 @@ import SettingsDialog from './components/SettingsDialog'
 import ModuleSettingsDialog from './components/ModuleSettingsDialog'
 import BootstrapTerminal from './components/BootstrapTerminal'
 import ModuleCreatorV2 from './components/ModuleCreatorV2'
+import HabitatSaveDialog from './components/HabitatSaveDialog'
+import HabitatManagerDialog from './components/HabitatManagerDialog'
+import ShellSettingsDialog from './components/ShellSettingsDialog'
 import { useTerminalStore } from './store/useTerminalStore'
 import { useSettingsStore } from './store/useSettingsStore'
 import { useModuleStore } from './stores/useModuleStore'
+import { useHabitatStore } from './store/useHabitatStore'
 import ModuleView from './module-engine/ModuleView'
 import type { ModuleManifest } from './module-engine/types'
+import type { ShellConfig, CreatureConfig, Habitat } from '../shared/habitatTypes'
 import './styles/global.css'
 
 // ---------------------------------------------------------------------------
@@ -61,6 +66,10 @@ export default function App() {
   const [bootstrapOpen, setBootstrapOpen] = useState(false)
   const [bootstrapV2Open, setBootstrapV2Open] = useState(false)
   const [moduleSettingsId, setModuleSettingsId] = useState<string | null>(null)
+  const [habitatSaveOpen, setHabitatSaveOpen] = useState(false)
+  const [habitatSaveId, setHabitatSaveId] = useState<string | null>(null)
+  const [habitatManageOpen, setHabitatManageOpen] = useState(false)
+  const [shellSettingsSessionId, setShellSettingsSessionId] = useState<string | null>(null)
   const terminalPanelHeight = useSettingsStore((s) => s.terminalPanelHeight)
   const habitatVisible = useSettingsStore((s) => s.habitatVisible)
   const terminalVisible = useSettingsStore((s) => s.terminalVisible)
@@ -69,6 +78,9 @@ export default function App() {
   const moduleStatus = useModuleStore((s) => s.status)
   const activeManifest = useModuleStore((s) => s.activeManifest)
   const showModule = moduleStatus !== 'idle' && moduleStatus !== 'stopped'
+
+  // Track terminal pane refs for serialize/deserialize
+  const terminalPaneRefs = useRef<Record<string, { serializeBuffer: () => string } | null>>({})
 
   // Apply accent color and theme to CSS variables / data attribute
   React.useEffect(() => {
@@ -103,12 +115,107 @@ export default function App() {
     return () => api.onStatus(handler)
   }, [])
 
+  // Listen for terminal:batch-created (from habitat:apply) to sync store with main process IDs
+  useEffect(() => {
+    const off = window.terminalAPI.onBatchCreated(({ sessions, habitatId }) => {
+      const addTerminalBatch = useTerminalStore.getState().addTerminalBatch
+      addTerminalBatch(
+        sessions as Array<{ id: string; name: string; shellConfig: ShellConfig; creature?: CreatureConfig }>
+      )
+      if (habitatId) {
+        useHabitatStore.getState().setActiveHabitatId(habitatId)
+      }
+    })
+    return off
+  }, [])
+
+  // Auto-restore last active habitat on mount
+  useEffect(() => {
+    if (!window.habitatlogAPI?.getLastActive) return
+
+    let cancelled = false
+    const restore = async () => {
+      try {
+        const lastActive = await window.habitatlogAPI.getLastActive()
+        if (cancelled || !lastActive) return
+
+        // Apply the habitat to restore shells
+        if (window.habitatAPI?.apply) {
+          await window.habitatAPI.apply(lastActive.habitatId)
+        }
+
+        if (cancelled) return
+
+        // Load terminal buffers from snapshot
+        const snapshot = await window.habitatlogAPI.getSnapshot(lastActive.habitatId)
+        if (snapshot?.terminalBuffers) {
+          // Wait a bit for terminals to mount, then inject buffers
+          await new Promise(r => setTimeout(r, 2000))
+          if (cancelled) return
+          for (const [sessionId, buffer] of Object.entries(snapshot.terminalBuffers)) {
+            const paneRef = terminalPaneRefs.current[sessionId]
+            if (paneRef?.deserializeBuffer) {
+              try { paneRef.deserializeBuffer(buffer) } catch {}
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[App] auto-restore failed:', err)
+      }
+    }
+    restore()
+    return () => { cancelled = true }
+  }, [])
+
+  // Snapshot habitat on app close
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (!window.habitatlogAPI?.writeSnapshot) return
+      try {
+        const buffers: Record<string, string> = {}
+        for (const [sessionId, paneRef] of Object.entries(terminalPaneRefs.current)) {
+          if (paneRef) {
+            try {
+              buffers[sessionId] = paneRef.serializeBuffer() ?? ''
+            } catch {}
+          }
+        }
+        const habitatId = window.habitatAPI?.getCurrentHabitatId?.() ?? ''
+        const habitatName = window.habitatAPI?.getCurrentHabitatName?.() ?? ''
+        window.habitatlogAPI.writeSnapshot({
+          type: 'snapshot',
+          version: 1,
+          habitatId,
+          habitatName,
+          timestamp: Date.now(),
+          terminalBuffers: buffers,
+          creatureMemories: {},
+          creatureNotes: {},
+          eventCount: 0,
+        }).catch(() => {})
+      } catch {}
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [])
+
   return (
     <>
       <div className="app">
         {/* ── Draggable title bar with integrated menu ── */}
         <div className="titlebar">
-          <MenuBar onOpenSettings={() => setSettingsOpen(true)} onCreateModule={() => setBootstrapOpen(true)} onCreateModuleV2={() => setBootstrapV2Open(true)} onOpenModuleSettings={(id) => setModuleSettingsId(id)} />
+          <MenuBar
+            onOpenSettings={() => setSettingsOpen(true)}
+            onCreateModule={() => setBootstrapOpen(true)}
+            onCreateModuleV2={() => setBootstrapV2Open(true)}
+            onOpenModuleSettings={(id) => setModuleSettingsId(id)}
+            onSaveHabitat={() => {
+              setHabitatSaveId(useHabitatStore.getState().activeHabitatId)
+              setHabitatSaveOpen(true)
+            }}
+            onManageHabitats={() => setHabitatManageOpen(true)}
+            onOpenShellSettings={(sessionId) => setShellSettingsSessionId(sessionId)}
+          />
           <span className="titlebar-title">Terminal Habitat</span>
           <div className="titlebar-actions">
             <WindowControls />
@@ -150,7 +257,12 @@ export default function App() {
               <ErrorBoundary label="Terminals">
                 <div className="terminal-grid">
                   {terminals.map((t) => (
-                    <TerminalPane key={t.id} session={t} />
+                    <TerminalPane
+                      key={t.id}
+                      session={t}
+                      ref={(el) => { terminalPaneRefs.current[t.id] = el }}
+                      onOpenShellSettings={(sessionId) => setShellSettingsSessionId(sessionId)}
+                    />
                   ))}
                 </div>
               </ErrorBoundary>
@@ -173,7 +285,35 @@ export default function App() {
         <ModuleSettingsDialog
           moduleId={moduleSettingsId}
           onClose={() => setModuleSettingsId(null)}
+          onDelete={async (id) => {
+            await window.moduleAPI.deleteModule(id)
+            setModuleSettingsId(null)
+          }}
         />
+      )}
+
+      {habitatSaveOpen && (
+        <ErrorBoundary label="HabitatSaveDialog">
+          <HabitatSaveDialog
+            onClose={() => { setHabitatSaveOpen(false); setHabitatSaveId(null) }}
+            initialHabitat={habitatSaveId ? useHabitatStore.getState().getHabitat(habitatSaveId) : undefined}
+          />
+        </ErrorBoundary>
+      )}
+
+      {habitatManageOpen && (
+        <ErrorBoundary label="HabitatManagerDialog">
+          <HabitatManagerDialog onClose={() => setHabitatManageOpen(false)} />
+        </ErrorBoundary>
+      )}
+
+      {shellSettingsSessionId && (
+        <ErrorBoundary label="ShellSettingsDialog">
+          <ShellSettingsDialog
+            sessionId={shellSettingsSessionId}
+            onClose={() => setShellSettingsSessionId(null)}
+          />
+        </ErrorBoundary>
       )}
     </>
   )
