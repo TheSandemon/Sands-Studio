@@ -1,11 +1,49 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join, resolve } from 'path'
 import fs from 'fs'
 import { ptyManager } from './pty-manager'
 import { dispatchAgentMessage, stopAgent } from './agent-runner'
-import { listModules, loadModule, buildAssetRegistry, bootstrapModule, saveBootstrap, getBootstrapQuestions, getQuestionSuggestions } from './module-engine/module-loader'
+import { listModules, loadModule, buildAssetRegistry, bootstrapModule, saveBootstrap, getBootstrapQuestions, getQuestionSuggestions, deleteModule } from './module-engine/module-loader'
 import type { ModuleSnapshot } from './module-engine/orchestrator'
 import { ModuleOrchestrator } from './module-engine/orchestrator'
+import { HabitatLog } from './habitat-log'
+import { ContextManager } from './context-manager'
+import { HookRegistry } from './hook-registry'
+import { PluginRegistry } from './plugin-registry'
+
+// DreamState module-level singletons
+const habitatLogs = new Map<string, HabitatLog>()
+const contextManagers = new Map<string, ContextManager>()
+const hookRegistry = new HookRegistry()
+
+const HOME = process.env.HOME ?? process.env.USERPROFILE ?? ''
+const pluginRegistry = new PluginRegistry([
+  join(HOME, '.terminal-habitat', 'plugins'),
+  join(process.cwd(), 'plugins'),
+])
+
+// Track which habitat is currently active (set by habitat:apply IPC)
+let currentHabitatId: string | null = null
+let currentHabitatName: string = ''
+
+function getHabitatLog(habitatId: string): HabitatLog {
+  let log = habitatLogs.get(habitatId)
+  if (!log) { log = new HabitatLog(habitatId); habitatLogs.set(habitatId, log) }
+  return log
+}
+
+function getContextManager(creatureId: string): ContextManager {
+  let cm = contextManagers.get(creatureId)
+  if (!cm) {
+    const memory = ContextManager.load(creatureId) ?? {
+      id: creatureId, hatched: false, createdAt: new Date().toISOString(),
+      messages: [], compactionRounds: 0
+    }
+    cm = new ContextManager(creatureId, memory)
+    contextManagers.set(creatureId, cm)
+  }
+  return cm
+}
 
 function creaturesDir(): string {
   return resolve(process.cwd(), '.habitat', 'creatures')
@@ -63,6 +101,10 @@ function createWindow(): BrowserWindow {
     ptyManager.resize(id, cols, rows)
   )
   ipcMain.handle('terminal:kill', (_e, id: string) => ptyManager.kill(id))
+  ipcMain.handle('terminal:create-with-config', (_e, id: string, config: unknown, cols?: number, rows?: number) => {
+    ptyManager.createWithConfig(id, config as import('../shared/habitatTypes').ShellConfig, cols, rows)
+    return id
+  })
 
   // ── Agent IPC ────────────────────────────────────────────────────────────
   ipcMain.handle('agent:start', (_e, terminalId: string, message: string, defaults?: { model?: string; baseURL?: string }) => {
@@ -309,6 +351,182 @@ function createWindow(): BrowserWindow {
     return { ok: true }
   })
 
+  /** Delete a module from disk. */
+  ipcMain.handle('module:delete', (_e, moduleId: string) => {
+    deleteModule(moduleId)
+    return { ok: true }
+  })
+
+  // ── Habitat IPC ─────────────────────────────────────────────────────────
+  // Note: Habitat CRUD (list, get, save, delete) are handled directly in the
+  // renderer via useHabitatStore (Zustand persist → localStorage).
+  // Main process only handles apply (requires PTY lifecycle) and import/export (file dialogs).
+
+  ipcMain.handle('habitat:apply', (_e, habitat: import('../shared/habitatTypes').Habitat) => {
+    // Track current habitat for before-quit last-active write
+    currentHabitatId = habitat.id
+    currentHabitatName = habitat.name
+    // Kill all existing PTYs
+    ptyManager.killAll()
+    // Create new PTYs for each shell — use creature.id from saved state if available
+    // so memory files can be found; fall back to deterministic ID
+    const sessions: Array<{ id: string; name: string; shellConfig: import('../shared/habitatTypes').ShellConfig; creature?: import('../shared/habitatTypes').CreatureConfig }> = []
+    for (let i = 0; i < habitat.shells.length; i++) {
+      const shell = habitat.shells[i]
+      const creatureId = shell.creature?.id ?? `hab-${habitat.id?.slice(-12) ?? 'app'}-${i}`
+      ptyManager.createWithConfig(creatureId, shell)
+      sessions.push({
+        id: creatureId,
+        name: shell.name || `Shell ${i + 1}`,
+        shellConfig: { ...shell, preCreated: true },
+        creature: shell.creature,
+      })
+    }
+    // Notify renderer of the batch creation with session info (including creature state and habitat ID for self-save tracking)
+    if (!win.isDestroyed()) {
+      win.webContents.send('terminal:batch-created', { sessions, habitatId: habitat.id })
+    }
+    return { ok: true }
+  })
+
+  ipcMain.handle('habitat:export', async (_e, habitat: import('../shared/habitatTypes').Habitat) => {
+    const result = await dialog.showSaveDialog(win, {
+      title: 'Export Habitat',
+      defaultPath: `${habitat.name.replace(/\s+/g, '-').toLowerCase()}.habitat.json`,
+      filters: [{ name: 'Habitat', extensions: ['habitat.json', 'json'] }],
+    })
+    if (result.canceled || !result.filePath) return { canceled: true }
+    fs.writeFileSync(result.filePath, JSON.stringify(habitat, null, 2))
+    return { ok: true, path: result.filePath }
+  })
+
+  ipcMain.handle('habitat:import', async () => {
+    const result = await dialog.showOpenDialog(win, {
+      title: 'Import Habitat',
+      filters: [{ name: 'Habitat', extensions: ['habitat.json', 'json'] }],
+      properties: ['openFile'],
+    })
+    if (result.canceled || !result.filePaths[0]) return { canceled: true }
+    const habitat = JSON.parse(fs.readFileSync(result.filePaths[0], 'utf8'))
+    return { ok: true, habitat }
+  })
+
+  // ── HabitatLog IPC ────────────────────────────────────────────────────────
+  ipcMain.handle('habitatlog:write-event', (_e, event: import('../shared/dreamstate-types').HabitatLogEvent) => {
+    const habitatId = currentHabitatId ?? 'default'
+    const log = getHabitatLog(habitatId)
+    log.write(event)
+    // Evaluate and execute matching hooks
+    const matches = hookRegistry.evaluate(event)
+    for (const match of matches) {
+      hookRegistry.executeMatch(match).catch((err: unknown) => console.error('[HookRegistry] executeMatch failed:', err))
+    }
+    return { ok: true }
+  })
+
+  ipcMain.handle('habitatlog:write-snapshot', (_e, habitatId: string, snapshot: Omit<import('../shared/dreamstate-types').HabitatSnapshot, 'type' | 'version'>) => {
+    getHabitatLog(habitatId).writeSnapshot(snapshot)
+    hookRegistry.callHook('onSnapshotWritten', { habitatId, snapshotPath: snapshot })
+    return { ok: true }
+  })
+
+  ipcMain.handle('habitatlog:get-last-active', () => {
+    return HabitatLog.readLastActive()
+  })
+
+  ipcMain.handle('habitatlog:get-snapshot', (_e, habitatId: string) => {
+    return getHabitatLog(habitatId).getLastSession(habitatId)
+  })
+
+  // ── ContextManager IPC ────────────────────────────────────────────────────
+  ipcMain.handle('context:compact', async (_e, creatureId: string, options?: { model?: string; apiKey?: string; baseURL?: string }) => {
+    const cm = getContextManager(creatureId)
+    const result = await cm.compact(options)
+    // Notify plugins and hooks
+    hookRegistry.callHook('onContextCompacted', { creatureId, summary: cm.getSummary() ?? '', round: result.round })
+    return result
+  })
+
+  ipcMain.handle('context:get-notes', (_e, creatureId: string) => {
+    return getContextManager(creatureId).getNotes()
+  })
+
+  ipcMain.handle('context:get-message-count', (_e, creatureId: string) => {
+    return getContextManager(creatureId).getMessageCount()
+  })
+
+  ipcMain.handle('context:start-auto-compact', (_e, creatureId: string, intervalMs?: number) => {
+    getContextManager(creatureId).startAutoCompact(intervalMs)
+    return { ok: true }
+  })
+
+  ipcMain.handle('context:stop-auto-compact', (_e, creatureId: string) => {
+    getContextManager(creatureId).stopAutoCompact()
+    return { ok: true }
+  })
+
+  ipcMain.handle('context:increment-count', (_e, creatureId: string) => {
+    const cm = contextManagers.get(creatureId)
+    if (cm) {
+      cm.recordActivity()
+      if (cm.getMessageCount() > 200) {
+        // Fire and forget compaction
+        cm.compact().catch(() => {})
+      }
+    }
+    return { ok: true }
+  })
+
+  // ── HookRegistry IPC ─────────────────────────────────────────────────────
+  ipcMain.handle('hook:register', (_e, hook: import('../shared/dreamstate-types').Hook) => {
+    hookRegistry.register(hook)
+    return { ok: true }
+  })
+  ipcMain.handle('hook:unregister', (_e, hookId: string) => {
+    hookRegistry.unregister(hookId)
+    return { ok: true }
+  })
+  ipcMain.handle('hook:enable', (_e, hookId: string) => {
+    hookRegistry.enable(hookId)
+    return { ok: true }
+  })
+  ipcMain.handle('hook:disable', (_e, hookId: string) => {
+    hookRegistry.disable(hookId)
+    return { ok: true }
+  })
+  ipcMain.handle('hook:list', () => {
+    return hookRegistry.list()
+  })
+
+  // ── PluginRegistry IPC ────────────────────────────────────────────────────
+  ipcMain.handle('plugin:discover', (_e, searchPaths?: string[]) => {
+    return pluginRegistry.discover(searchPaths)
+  })
+  ipcMain.handle('plugin:load', (_e, pluginId: string) => {
+    const result = pluginRegistry.load(pluginId)
+    return result ? { ok: true } : { ok: false, error: 'not found or load failed' }
+  })
+  ipcMain.handle('plugin:unload', (_e, pluginId: string) => {
+    pluginRegistry.unload(pluginId)
+    return { ok: true }
+  })
+  ipcMain.handle('plugin:list-loaded', () => {
+    return pluginRegistry.listLoaded().map(p => ({ id: p.id, manifest: p.manifest }))
+  })
+
+  // ── SkillCompiler IPC ────────────────────────────────────────────────────
+  ipcMain.handle('skill:compile', async (_e, args: { creatureId: string; name: string; triggers?: string[]; description?: string; notes?: string; summary?: string }) => {
+    const { SkillCompiler } = await import('./skill-compiler')
+    const compiler = new SkillCompiler(args.creatureId, { notes: args.notes, summary: args.summary })
+    const skill = await compiler.compile(args.name, args.triggers ?? [], args.description)
+    hookRegistry.callHook('onSkillCompiled', { skillPath: skill.manifest.path, skillName: skill.manifest.name, creatureId: args.creatureId })
+    return skill
+  })
+  ipcMain.handle('skill:list', (_e, creatureId?: string) => {
+    const { SkillCompiler } = await import('./skill-compiler')
+    return SkillCompiler.listSkills(creatureId)
+  })
+
   if (process.env.ELECTRON_RENDERER_URL) {
     win.loadURL(process.env.ELECTRON_RENDERER_URL)
   } else {
@@ -320,6 +538,15 @@ function createWindow(): BrowserWindow {
 
 app.whenReady().then(() => {
   createWindow()
+
+  // DreamState: check for last active habitat and emit app:started
+  const lastActive = HabitatLog.readLastActive()
+  if (lastActive) {
+    const log = getHabitatLog(lastActive.habitatId)
+    log.write({ type: 'app:started', timestamp: Date.now() })
+    hookRegistry.callHook('onAppClose', {})  // startup notification
+  }
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
@@ -328,4 +555,19 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   ptyManager.dispose()
   if (process.platform !== 'darwin') app.quit()
+})
+
+// DreamState: write last-active pointer and cleanup on quit
+app.on('before-quit', () => {
+  if (currentHabitatId) {
+    const log = getHabitatLog(currentHabitatId)
+    log.write({ type: 'app:closing', timestamp: Date.now() })
+    log.writeLastActive(currentHabitatId, currentHabitatName)
+  }
+  // Stop all auto-compact timers
+  for (const cm of contextManagers.values()) {
+    cm.stopAutoCompact()
+  }
+  // Dispose hook registry (clears cron timers)
+  hookRegistry.dispose()
 })
