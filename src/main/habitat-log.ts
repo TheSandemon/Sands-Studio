@@ -116,7 +116,7 @@ export class HabitatLog {
    * Persist pending events, then write a snapshot file.
    * Snapshot is written to snapshots/{habitatId}/{ISO timestamp}.snap.json.
    */
-  writeSnapshot(snapshot: Omit<HabitatSnapshot, 'type' | 'version'>): void {
+  writeSnapshot(snapshot: Omit<HabitatSnapshot, 'type' | 'version'>): string {
     this.flush()
 
     const full: HabitatSnapshot = {
@@ -132,6 +132,7 @@ export class HabitatLog {
     const filePath = join(dir, `${timestamp}.snap.json`)
 
     fs.writeFileSync(filePath, JSON.stringify(full, null, 2), 'utf8')
+    return filePath
   }
 
   /** Return the most recent snapshot for a habitat, or null if none exist. */

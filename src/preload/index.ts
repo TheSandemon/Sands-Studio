@@ -38,6 +38,8 @@ const habitatAPI = {
   apply: (habitat: object) => ipcRenderer.invoke('habitat:apply', habitat),
   export: (habitat: object) => ipcRenderer.invoke('habitat:export', habitat),
   import: () => ipcRenderer.invoke('habitat:import'),
+  getCurrentHabitatId: () => ipcRenderer.invoke('habitat:get-current-id'),
+  getCurrentHabitatName: () => ipcRenderer.invoke('habitat:get-current-name'),
 }
 
 const agentAPI = {

@@ -174,7 +174,7 @@ export default function App() {
 
   // Snapshot habitat on app close
   useEffect(() => {
-    const handleBeforeUnload = () => {
+    const handleBeforeUnload = async () => {
       if (!window.habitatlogAPI?.writeSnapshot) return
       try {
         const buffers: Record<string, string> = {}
@@ -185,8 +185,10 @@ export default function App() {
             } catch {}
           }
         }
-        const habitatId = window.habitatAPI?.getCurrentHabitatId?.() ?? ''
-        const habitatName = window.habitatAPI?.getCurrentHabitatName?.() ?? ''
+        const [habitatId, habitatName] = await Promise.all([
+          window.habitatAPI?.getCurrentHabitatId?.() ?? 'default',
+          window.habitatAPI?.getCurrentHabitatName?.() ?? '',
+        ])
         window.habitatlogAPI.writeSnapshot({
           type: 'snapshot',
           version: 1,

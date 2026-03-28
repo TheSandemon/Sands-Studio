@@ -389,6 +389,14 @@ function createWindow(): BrowserWindow {
     return { ok: true }
   })
 
+  ipcMain.handle('habitat:get-current-id', () => {
+    return currentHabitatId
+  })
+
+  ipcMain.handle('habitat:get-current-name', () => {
+    return currentHabitatName
+  })
+
   ipcMain.handle('habitat:export', async (_e, habitat: import('../shared/habitatTypes').Habitat) => {
     const result = await dialog.showSaveDialog(win, {
       title: 'Export Habitat',
@@ -424,9 +432,10 @@ function createWindow(): BrowserWindow {
     return { ok: true }
   })
 
-  ipcMain.handle('habitatlog:write-snapshot', (_e, habitatId: string, snapshot: Omit<import('../shared/dreamstate-types').HabitatSnapshot, 'type' | 'version'>) => {
-    getHabitatLog(habitatId).writeSnapshot(snapshot)
-    hookRegistry.callHook('onSnapshotWritten', { habitatId, snapshotPath: snapshot })
+  ipcMain.handle('habitatlog:write-snapshot', (_e, snapshot: Omit<import('../shared/dreamstate-types').HabitatSnapshot, 'type' | 'version'>) => {
+    const habitatId = snapshot.habitatId ?? currentHabitatId ?? 'default'
+    const snapshotPath = getHabitatLog(habitatId).writeSnapshot(snapshot)
+    hookRegistry.callHook('onSnapshotWritten', { habitatId, snapshotPath })
     return { ok: true }
   })
 
