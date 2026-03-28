@@ -170,7 +170,6 @@ const TerminalPane = forwardRef<TerminalPaneRef, Props>(({ session, onOpenShellS
       fontSize:    sc?.fontSize   ?? s.fontSize,
       scrollback:  sc?.scrollback ?? s.scrollback,
       cursorStyle: sc?.cursorStyle ?? s.cursorStyle,
-      bellSoundEnabled: sc?.bellSound ?? true,
       theme: buildTheme(s.theme === 'dark', s.accentColor, sc?.colorScheme),
     })
 
@@ -178,6 +177,7 @@ const TerminalPane = forwardRef<TerminalPaneRef, Props>(({ session, onOpenShellS
     term.loadAddon(fitAddon)
     term.loadAddon(new WebLinksAddon())
     term.open(containerRef.current)
+    term.focus()
     fitAddon.fit()
     xtermRef.current = term
     fitRef.current = fitAddon
