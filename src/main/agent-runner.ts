@@ -5,11 +5,16 @@ import { promisify } from 'util'
 import fs from 'fs'
 import path from 'path'
 import { ptyManager } from './pty-manager'
+import { getContextManager } from './index'
+import type { ContextManager } from './context-manager'
 
 const execAsync = promisify(exec)
 
 // Per-terminal working directory — persists across tool calls within a session
 const terminalCwd = new Map<string, string>()
+
+// Track which terminals have auto-compact started (one shot per terminal)
+const autoCompactStarted = new Set<string>()
 
 // ---------------------------------------------------------------------------
 // Memory
@@ -223,6 +228,12 @@ async function startAgent(
   const state: AgentState = { running: true }
   agents.set(terminalId, state)
 
+  // Start auto-compact for this creature (one shot per terminal)
+  if (!autoCompactStarted.has(terminalId)) {
+    getContextManager(terminalId).startAutoCompact()
+    autoCompactStarted.add(terminalId)
+  }
+
   const client = new Anthropic({
     apiKey: memory.apiKey,
     baseURL: memory.baseURL ?? defaults?.baseURL ?? 'https://api.anthropic.com'
@@ -342,6 +353,14 @@ async function startAgent(
   } finally {
     state.running = false
     agents.delete(terminalId)
+
+    // Track message activity and fire auto-compact if threshold reached
+    const cm = getContextManager(terminalId)
+    cm.recordActivity()
+    if (cm.getMessageCount() > 200) {
+      cm.compact().catch(() => {})
+    }
+
     saveMemory(terminalId, { ...memory, messages: messages.slice(-60) })
     sendEvent(win, terminalId, 'done', null)
   }
@@ -368,4 +387,7 @@ export async function dispatchAgentMessage(
 export function stopAgent(terminalId: string): void {
   const state = agents.get(terminalId)
   if (state) state.running = false
+  // Stop auto-compact when the terminal session closes
+  autoCompactStarted.delete(terminalId)
+  getContextManager(terminalId).stopAutoCompact()
 }

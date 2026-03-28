@@ -32,7 +32,7 @@ function getHabitatLog(habitatId: string): HabitatLog {
   return log
 }
 
-function getContextManager(creatureId: string): ContextManager {
+export function getContextManager(creatureId: string): ContextManager {
   let cm = contextManagers.get(creatureId)
   if (!cm) {
     const memory = ContextManager.load(creatureId) ?? {
