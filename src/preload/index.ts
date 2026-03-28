@@ -9,6 +9,8 @@ const windowAPI = {
 const terminalAPI = {
   create: (id: string, options?: object) =>
     ipcRenderer.invoke('terminal:create', id, options ?? {}),
+  createWithConfig: (id: string, config: object, cols?: number, rows?: number) =>
+    ipcRenderer.invoke('terminal:create-with-config', id, config, cols, rows),
   write: (id: string, data: string) =>
     ipcRenderer.send('terminal:write', id, data),
   resize: (id: string, cols: number, rows: number) =>
@@ -24,7 +26,18 @@ const terminalAPI = {
     const h = (_: Electron.IpcRendererEvent, id: string, code: number) => cb(id, code)
     ipcRenderer.on('terminal:exit', h)
     return () => ipcRenderer.off('terminal:exit', h)
-  }
+  },
+  onBatchCreated: (cb: (payload: { sessions: unknown[]; habitatId?: string }) => void) => {
+    const h = (_: Electron.IpcRendererEvent, payload: { sessions: unknown[]; habitatId?: string }) => cb(payload)
+    ipcRenderer.on('terminal:batch-created', h)
+    return () => ipcRenderer.off('terminal:batch-created', h)
+  },
+}
+
+const habitatAPI = {
+  apply: (habitat: object) => ipcRenderer.invoke('habitat:apply', habitat),
+  export: (habitat: object) => ipcRenderer.invoke('habitat:export', habitat),
+  import: () => ipcRenderer.invoke('habitat:import'),
 }
 
 const agentAPI = {
@@ -75,6 +88,7 @@ const moduleAPI = {
     ipcRenderer.invoke('module:getConfig', moduleId),
   saveConfigChanges: (moduleId: string, changes: object) =>
     ipcRenderer.invoke('module:saveConfigChanges', moduleId, changes),
+  deleteModule: (moduleId: string) => ipcRenderer.invoke('module:delete', moduleId),
   onEvent: (cb: (event: unknown) => void) => {
     const h = (_: Electron.IpcRendererEvent, event: unknown) => cb(event)
     ipcRenderer.on('module:event', h)
@@ -118,3 +132,54 @@ contextBridge.exposeInMainWorld('terminalAPI', terminalAPI)
 contextBridge.exposeInMainWorld('agentAPI', agentAPI)
 contextBridge.exposeInMainWorld('creatureAPI', creatureAPI)
 contextBridge.exposeInMainWorld('moduleAPI', moduleAPI)
+contextBridge.exposeInMainWorld('habitatAPI', habitatAPI)
+
+// habitatlogAPI
+const habitatlogAPI = {
+  getLastActive: () => ipcRenderer.invoke('habitatlog:get-last-active'),
+  writeSnapshot: (snapshot: unknown) => ipcRenderer.invoke('habitatlog:write-snapshot', snapshot),
+  writeEvent: (event: unknown) => ipcRenderer.invoke('habitatlog:write-event', event),
+  getSnapshot: (habitatId: string) => ipcRenderer.invoke('habitatlog:get-snapshot', habitatId),
+}
+
+// contextAPI
+const contextAPI = {
+  compact: (opts: { creatureId: string }) => ipcRenderer.invoke('context:compact', opts),
+  getNotes: (opts: { creatureId: string }) => ipcRenderer.invoke('context:get-notes', opts),
+  getMessageCount: (opts: { creatureId: string }) => ipcRenderer.invoke('context:get-message-count', opts),
+  incrementMessageCount: (opts: { creatureId: string }) => ipcRenderer.invoke('context:increment-message-count', opts),
+  startAutoCompact: (opts: { creatureId: string; intervalMs?: number }) => ipcRenderer.invoke('context:start-auto-compact', opts),
+  stopAutoCompact: (opts: { creatureId: string }) => ipcRenderer.invoke('context:stop-auto-compact', opts),
+}
+
+// hookAPI
+const hookAPI = {
+  register: (hook: unknown) => ipcRenderer.invoke('hook:register', hook),
+  unregister: (opts: { hookId: string }) => ipcRenderer.invoke('hook:unregister', opts),
+  enable: (opts: { hookId: string }) => ipcRenderer.invoke('hook:enable', opts),
+  disable: (opts: { hookId: string }) => ipcRenderer.invoke('hook:disable', opts),
+  list: () => ipcRenderer.invoke('hook:list'),
+}
+
+// pluginAPI
+const pluginAPI = {
+  discover: () => ipcRenderer.invoke('plugin:discover'),
+  load: (opts: { pluginId: string }) => ipcRenderer.invoke('plugin:load', opts),
+  unload: (opts: { pluginId: string }) => ipcRenderer.invoke('plugin:unload', opts),
+  callHook: (opts: { hookName: string; args?: unknown }) => ipcRenderer.invoke('plugin:call-hook', opts),
+}
+
+// skillAPI
+const skillAPI = {
+  compile: (opts: { creatureId: string; name: string; triggers?: string[]; description?: string }) =>
+    ipcRenderer.invoke('skill:compile', opts),
+  list: (opts?: { creatureId?: string }) => ipcRenderer.invoke('skill:list', opts),
+  load: (opts: { path: string }) => ipcRenderer.invoke('skill:load', opts),
+  delete: (opts: { path: string }) => ipcRenderer.invoke('skill:delete', opts),
+}
+
+contextBridge.exposeInMainWorld('habitatlogAPI', habitatlogAPI)
+contextBridge.exposeInMainWorld('contextAPI', contextAPI)
+contextBridge.exposeInMainWorld('hookAPI', hookAPI)
+contextBridge.exposeInMainWorld('pluginAPI', pluginAPI)
+contextBridge.exposeInMainWorld('skillAPI', skillAPI)

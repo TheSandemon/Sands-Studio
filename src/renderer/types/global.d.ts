@@ -1,7 +1,167 @@
 export {}
 
+// ── DreamState types (cross-process) ────────────────────────────────────────
+
+export type HabitatLogEventType =
+  | 'terminal:output' | 'agent:event' | 'habitat:applied' | 'shell:added'
+  | 'shell:removed' | 'context:compacted' | 'skill:compiled' | 'hook:fired'
+  | 'app:started' | 'app:closing'
+
+export interface HabitatLogEvent {
+  type: HabitatLogEventType
+  sessionId?: string
+  timestamp: number
+  payload?: unknown
+}
+
+export interface HabitatSnapshot {
+  type: 'snapshot'
+  version: 1
+  habitatId: string
+  habitatName: string
+  timestamp: number
+  terminalBuffers: Record<string, string>
+  creatureMemories: Record<string, CreatureMemory>
+  creatureNotes: Record<string, string>
+  eventCount: number
+  previousSnapshotTimestamp?: number
+}
+
+export interface LastActiveHabitat {
+  habitatId: string
+  habitatName: string
+  closedAt: number
+  snapshotTimestamp: number
+}
+
+export interface CompactionResult {
+  creatureId: string
+  round: number
+  summaryLength: number
+  messageCountBefore: number
+  messageCountAfter: number
+  notesExtracted: boolean
+  timestamp: number
+}
+
+export type HookTriggerType = 'event' | 'pattern' | 'schedule' | 'context'
+export type HookCondition =
+  | { type: 'event-type'; eventType: HabitatLogEventType }
+  | { type: 'regex'; pattern: string; sourceField: 'chunk' | 'event' | 'payload' }
+  | { type: 'cron'; expression: string }
+  | { type: 'context-compacted' }
+export type HookAction =
+  | { type: 'log'; message: string }
+  | { type: 'compact'; creatureId: string }
+  | { type: 'skill'; skillPath: string; args?: string }
+  | { type: 'shell'; command: string; sessionId?: string }
+  | { type: 'http'; url: string; method: 'GET' | 'POST'; body?: string }
+  | { type: 'plugin'; pluginId: string; method: string; args?: unknown }
+
+export interface Hook {
+  id: string
+  name: string
+  description?: string
+  trigger: HookTriggerType
+  condition: HookCondition
+  action: HookAction
+  enabled: boolean
+  createdAt: number
+}
+
+export interface SkillManifest {
+  id: string
+  name: string
+  description?: string
+  triggers: string[]
+  creatureId: string
+  createdAt: number
+  path: string
+}
+
+export interface CompiledSkill {
+  manifest: SkillManifest
+  content: string
+  annotations: { compactionRound: number; sourceCreatureId: string }
+}
+
+export type PluginPermission =
+  | 'filesystem:read' | 'filesystem:write' | 'http:GET' | 'http:POST' | 'http:ALL'
+export type PluginHookName =
+  | 'onAgentEvent' | 'onContextCompacted' | 'onTerminalOutput'
+  | 'onSnapshotWritten' | 'onAppClose' | 'onSkillCompiled'
+
+export interface PluginManifest {
+  id: string
+  name: string
+  version: string
+  description?: string
+  entry: string
+  permissions: PluginPermission[]
+  hooks: PluginHookName[]
+  author?: string
+}
+
+export interface DiscoveredPlugin {
+  id: string
+  manifest: PluginManifest
+  rootPath: string
+}
+
+export interface LoadedPlugin {
+  id: string
+  manifest: PluginManifest
+  instance: object
+}
+
+// Window API interfaces
+export interface HabitatlogAPI {
+  getLastActive: () => Promise<LastActiveHabitat | null>
+  writeSnapshot: (snapshot: HabitatSnapshot) => Promise<void>
+  writeEvent: (event: HabitatLogEvent) => Promise<void>
+  getSnapshot: (habitatId: string) => Promise<HabitatSnapshot | null>
+}
+
+export interface ContextAPI {
+  compact: (opts: { creatureId: string }) => Promise<CompactionResult>
+  getNotes: (opts: { creatureId: string }) => Promise<string | null>
+  getMessageCount: (opts: { creatureId: string }) => Promise<number>
+  incrementMessageCount: (opts: { creatureId: string }) => Promise<void>
+  startAutoCompact: (opts: { creatureId: string; intervalMs?: number }) => Promise<void>
+  stopAutoCompact: (opts: { creatureId: string }) => Promise<void>
+}
+
+export interface HookAPI {
+  register: (hook: Hook) => Promise<void>
+  unregister: (opts: { hookId: string }) => Promise<void>
+  enable: (opts: { hookId: string }) => Promise<void>
+  disable: (opts: { hookId: string }) => Promise<void>
+  list: () => Promise<Hook[]>
+}
+
+export interface PluginAPI {
+  discover: () => Promise<DiscoveredPlugin[]>
+  load: (opts: { pluginId: string }) => Promise<LoadedPlugin | null>
+  unload: (opts: { pluginId: string }) => Promise<void>
+  callHook: (opts: { hookName: string; args?: unknown }) => Promise<void>
+}
+
+export interface SkillAPI {
+  compile: (opts: { creatureId: string; name: string; triggers?: string[]; description?: string }) => Promise<CompiledSkill>
+  list: (opts?: { creatureId?: string }) => Promise<SkillManifest[]>
+  load: (opts: { path: string }) => Promise<CompiledSkill | null>
+  delete: (opts: { path: string }) => Promise<void>
+}
+
+// ── Global window augmentation ──────────────────────────────────────────────
+
 declare global {
   interface Window {
+    habitatlogAPI: HabitatlogAPI
+    contextAPI: ContextAPI
+    hookAPI: HookAPI
+    pluginAPI: PluginAPI
+    skillAPI: SkillAPI
     windowAPI: {
       minimize: () => void
       maximize: () => void
@@ -9,11 +169,18 @@ declare global {
     }
     terminalAPI: {
       create: (id: string, options?: object) => Promise<string>
+      createWithConfig: (id: string, config: object, cols?: number, rows?: number) => Promise<string>
       write: (id: string, data: string) => void
       resize: (id: string, cols: number, rows: number) => void
       kill: (id: string) => Promise<void>
       onData: (cb: (id: string, data: string) => void) => () => void
       onExit: (cb: (id: string, code: number) => void) => () => void
+      onBatchCreated: (cb: (sessions: unknown[]) => void) => () => void
+    }
+    habitatAPI: {
+      apply: (habitat: object) => Promise<{ ok?: boolean; canceled?: boolean }>
+      export: (habitat: object) => Promise<{ ok?: boolean; canceled?: boolean; path?: string }>
+      import: () => Promise<{ ok?: boolean; canceled?: boolean; habitat?: object }>
     }
     agentAPI: {
       start: (terminalId: string, message: string, defaults?: { model?: string; baseURL?: string }) => Promise<void>
