@@ -161,6 +161,42 @@ export class HookRegistry {
     return Array.from(this.hooks.values())
   }
 
+  // ── Internal system hooks (programmatic triggers) ────────────────────────────
+
+  /**
+   * Trigger a named system hook by name. Finds all hooks whose action matches
+   * the given hook name and executes them with the provided payload.
+   * Used by internal code (habitat:apply, context:compact, skill:compile, etc.)
+   * to fire system-level hooks on specific events.
+   */
+  callHook(hookName: string, payload?: Record<string, unknown>): void {
+    for (const hook of this.hooks.values()) {
+      if (!hook.enabled) continue
+      // Match by action type mapping to the hook name
+      if (this.hookMatchesName(hook, hookName)) {
+        this.executeMatch({ hook, matchedValue: undefined }).catch(
+          (err: unknown) => console.error(`[HookRegistry] callHook '${hookName}' failed:`, err)
+        )
+      }
+    }
+  }
+
+  private hookMatchesName(hook: Hook, name: string): boolean {
+    const cond = hook.condition
+    switch (name) {
+      case 'onSnapshotWritten':
+        return cond.type === 'event-type' && cond.eventType === 'snapshot:written'
+      case 'onContextCompacted':
+        return cond.type === 'context-compacted'
+      case 'onSkillCompiled':
+        return cond.type === 'event-type' && cond.eventType === 'skill:compiled'
+      case 'onAppClose':
+        return cond.type === 'event-type' && cond.eventType === 'app:closing'
+      default:
+        return false
+    }
+  }
+
   // ── Persistence ─────────────────────────────────────────────────────────────
 
   loadFromDisk(): void {

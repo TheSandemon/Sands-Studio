@@ -141,9 +141,12 @@ export default function App() {
         const lastActive = await window.habitatlogAPI.getLastActive()
         if (cancelled || !lastActive) return
 
-        // Apply the habitat to restore shells
+        // Apply the habitat to restore shells — look up full Habitat from store first
         if (window.habitatAPI?.apply) {
-          await window.habitatAPI.apply(lastActive.habitatId)
+          const habitat = useHabitatStore.getState().getHabitat(lastActive.habitatId)
+          if (habitat) {
+            await window.habitatAPI.apply(habitat)
+          }
         }
 
         if (cancelled) return
