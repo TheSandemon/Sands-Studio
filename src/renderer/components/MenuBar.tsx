@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useTerminalStore } from '../store/useTerminalStore'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { useModuleStore } from '../stores/useModuleStore'
+import { useHabitatStore } from '../store/useHabitatStore'
+import type { Habitat } from '../../shared/habitatTypes'
 import './MenuBar.css'
 
 interface MenuAction {
@@ -23,15 +25,20 @@ interface MenuBarProps {
   onCreateModule: () => void
   onCreateModuleV2: () => void
   onOpenModuleSettings: (moduleId: string) => void
+  onSaveHabitat: () => void
+  onManageHabitats: () => void
+  onOpenShellSettings: (sessionId: string) => void
+  onOpenDreamState: () => void
 }
 
-export default function MenuBar({ onOpenSettings, onCreateModule, onCreateModuleV2, onOpenModuleSettings }: MenuBarProps) {
+export default function MenuBar({ onOpenSettings, onCreateModule, onCreateModuleV2, onOpenModuleSettings, onSaveHabitat, onManageHabitats, onOpenShellSettings, onOpenDreamState }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const [moduleList, setModuleList] = useState<string[]>([])
   const [snapshotIds, setSnapshotIds] = useState<string[]>([])
   const menuBarRef = useRef<HTMLDivElement>(null)
   const addTerminal = useTerminalStore((s) => s.addTerminal)
   const terminals = useTerminalStore((s) => s.terminals)
+  const habitats = useHabitatStore((s) => s.habitats)
   const { habitatVisible, terminalVisible, setSettings } = useSettingsStore()
   const moduleStatus = useModuleStore((s) => s.status)
   const savedSnapshotIds = useModuleStore((s) => s.savedSnapshotIds)
@@ -116,6 +123,76 @@ export default function MenuBar({ onOpenSettings, onCreateModule, onCreateModule
     { label: 'Create Module (V2 — cards)', onClick: handleCreateModuleV2 },
   ]
 
+  // Habitats — static items (list rendered via custom dropdown)
+  const HABITATS_ITEMS: MenuAction[] = [
+    { label: 'Save Current Shells as Habitat…', onClick: () => { onSaveHabitat(); setOpenMenu(null) } },
+    { separator: true },
+    { label: 'Manage Habitats…', onClick: () => { onManageHabitats(); setOpenMenu(null) } },
+  ]
+
+  // Apply a habitat — kills all current PTYs and recreates them via main process
+  const handleApplyHabitat = useCallback(async (habitat: Habitat) => {
+    try {
+      await window.habitatAPI.apply(habitat)
+    } catch (err) {
+      alert(`Failed to apply habitat: ${err}`)
+    }
+    setOpenMenu(null)
+  }, [])
+
+  // Custom renderer for habitats dropdown
+  const renderHabitatsDropdown = () => {
+    return (
+      <div className="menubar-dropdown">
+        <button
+          className="menubar-dropdown-item"
+          onClick={() => { onSaveHabitat(); setOpenMenu(null) }}
+        >
+          <span className="menubar-item-label">Save Current Shells as Habitat…</span>
+        </button>
+        <hr className="menubar-sep" />
+        {habitats.length === 0 ? (
+          <button className="menubar-dropdown-item" disabled>
+            <span className="menubar-item-label">No Habitats</span>
+          </button>
+        ) : (
+          habitats.map((h) => (
+            <div key={h.id} className="menubar-module-row">
+              <button
+                className="menubar-dropdown-item menubar-module-item"
+                onClick={() => handleApplyHabitat(h)}
+              >
+                <span className="menubar-item-label">{h.name}</span>
+                <span className="menubar-item-hint">{h.shells.length} shell{h.shells.length !== 1 ? 's' : ''}</span>
+              </button>
+              <button
+                className="menubar-module-cog"
+                title={`Shell settings for ${h.name}`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  // Open shell settings for the first shell in this habitat
+                  if (h.shells.length > 0) {
+                    onOpenShellSettings(h.shells[0].id)
+                  }
+                  setOpenMenu(null)
+                }}
+              >
+                ⚙
+              </button>
+            </div>
+          ))
+        )}
+        <hr className="menubar-sep" />
+        <button
+          className="menubar-dropdown-item"
+          onClick={() => { onManageHabitats(); setOpenMenu(null) }}
+        >
+          <span className="menubar-item-label">Manage Habitats…</span>
+        </button>
+      </div>
+    )
+  }
+
   // Custom renderer for modules dropdown to support settings cog buttons
   const renderModulesDropdown = () => {
     const isActive = moduleStatus !== 'idle' && moduleStatus !== 'stopped'
@@ -164,7 +241,7 @@ export default function MenuBar({ onOpenSettings, onCreateModule, onCreateModule
                         <span className="menubar-item-label">{id} ▶ Resume</span>
                       </button>
                       <button
-                        className="menubar-dropdown-item menubar-module-item menubar-module-fresh"
+                        className="menubar-dropdown-item menubar-module-fresh"
                         onClick={() => { handleLaunchModule(id); setOpenMenu(null) }}
                       >
                         <span className="menubar-item-label">(fresh)</span>
@@ -308,9 +385,24 @@ export default function MenuBar({ onOpenSettings, onCreateModule, onCreateModule
       ],
     },
     {
+      id: 'habitats',
+      label: 'Habitats',
+      items: HABITATS_ITEMS,
+    },
+    {
       id: 'modules',
       label: 'Modules',
       items: MODULES_ITEMS,
+    },
+    {
+      id: 'dreamstate',
+      label: 'DreamState',
+      items: [
+        {
+          label: 'Open DreamState Panel',
+          onClick: onOpenDreamState,
+        },
+      ],
     },
     {
       id: 'help',
@@ -377,7 +469,8 @@ export default function MenuBar({ onOpenSettings, onCreateModule, onCreateModule
           </button>
 
           {openMenu === menu.id && (
-            menu.id === 'modules' ? renderModulesDropdown() : (
+            menu.id === 'modules' ? renderModulesDropdown() :
+            menu.id === 'habitats' ? renderHabitatsDropdown() : (
               <div className="menubar-dropdown">
                 {menu.items.map((item, idx) =>
                   item.separator ? (

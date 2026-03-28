@@ -10,6 +10,7 @@ import ModuleCreatorV2 from './components/ModuleCreatorV2'
 import HabitatSaveDialog from './components/HabitatSaveDialog'
 import HabitatManagerDialog from './components/HabitatManagerDialog'
 import ShellSettingsDialog from './components/ShellSettingsDialog'
+import DreamStatePanel from './components/DreamStatePanel'
 import { useTerminalStore } from './store/useTerminalStore'
 import { useSettingsStore } from './store/useSettingsStore'
 import { useModuleStore } from './stores/useModuleStore'
@@ -70,6 +71,7 @@ export default function App() {
   const [habitatSaveId, setHabitatSaveId] = useState<string | null>(null)
   const [habitatManageOpen, setHabitatManageOpen] = useState(false)
   const [shellSettingsSessionId, setShellSettingsSessionId] = useState<string | null>(null)
+  const [dreamStateOpen, setDreamStateOpen] = useState(false)
   const terminalPanelHeight = useSettingsStore((s) => s.terminalPanelHeight)
   const habitatVisible = useSettingsStore((s) => s.habitatVisible)
   const terminalVisible = useSettingsStore((s) => s.terminalVisible)
@@ -215,6 +217,7 @@ export default function App() {
             }}
             onManageHabitats={() => setHabitatManageOpen(true)}
             onOpenShellSettings={(sessionId) => setShellSettingsSessionId(sessionId)}
+            onOpenDreamState={() => setDreamStateOpen(true)}
           />
           <span className="titlebar-title">Terminal Habitat</span>
           <div className="titlebar-actions">
@@ -313,6 +316,12 @@ export default function App() {
             sessionId={shellSettingsSessionId}
             onClose={() => setShellSettingsSessionId(null)}
           />
+        </ErrorBoundary>
+      )}
+
+      {dreamStateOpen && (
+        <ErrorBoundary label="DreamStatePanel">
+          <DreamStatePanel onClose={() => setDreamStateOpen(false)} />
         </ErrorBoundary>
       )}
     </>
