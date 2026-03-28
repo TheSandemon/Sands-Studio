@@ -99,6 +99,8 @@ const TerminalPane = forwardRef<TerminalPaneRef, Props>(({ session, onOpenShellS
   const paneRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<Terminal | null>(null)
   const fitRef = useRef<FitAddon | null>(null)
+  // Track whether THIS RENDERER INSTANCE created the PTY (vs. pre-created by main process)
+  const rendererCreatedPty = useRef(false)
 
   useImperativeHandle(ref, () => ({
     serializeBuffer: () => {
@@ -185,8 +187,10 @@ const TerminalPane = forwardRef<TerminalPaneRef, Props>(({ session, onOpenShellS
     if (sc?.preCreated) {
       // PTY already created by main process (e.g. habitat:apply) — just wire up listeners
     } else if (sc) {
+      rendererCreatedPty.current = true
       window.terminalAPI.createWithConfig(session.id, sc)
     } else {
+      rendererCreatedPty.current = true
       window.terminalAPI.create(session.id)
     }
 
@@ -217,7 +221,11 @@ const TerminalPane = forwardRef<TerminalPaneRef, Props>(({ session, onOpenShellS
       offExit()
       ro.disconnect()
       term.dispose()
-      window.terminalAPI.kill(session.id)
+      // Only kill PTY if THIS renderer instance created it (not pre-created by main process)
+      if (rendererCreatedPty.current) {
+        window.terminalAPI.kill(session.id)
+        rendererCreatedPty.current = false
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.id])
