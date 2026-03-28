@@ -5,6 +5,7 @@
 
 import { mkdir, readFile, writeFile } from 'fs'
 import { join } from 'path'
+import Anthropic from '@anthropic-ai/sdk'
 import type { CreatureMemory, CompactionResult, CoreMessage } from '../shared/dreamstate-types'
 
 const CREATURES_DIR = join(process.cwd(), '.habitat', 'creatures')
@@ -106,7 +107,8 @@ export class ContextManager {
 
     // Try AI-powered compaction
     try {
-      const { generateText } = await import('ai')
+      const apiKey = options.apiKey ?? this.memory.apiKey
+      const baseURL = options.baseURL ?? this.memory.baseURL ?? 'https://api.anthropic.com'
 
       // Determine model: prefer haiku variants for cost efficiency
       let model = options.model ?? this.memory.model ?? 'claude-haiku'
@@ -121,15 +123,15 @@ export class ContextManager {
         'Output format: First a 3-5 sentence executive summary, then a bulleted list of "permanent facts" ' +
         '(things that should never be forgotten), then a "patterns" section (reusable approaches).'
 
-      const result = await generateText({
+      const client = new Anthropic({ apiKey, baseURL })
+      const response = await client.messages.create({
         model,
-        apiKey: options.apiKey ?? this.memory.apiKey,
-        baseURL: options.baseURL ?? this.memory.baseURL,
+        max_tokens: 1024,
         system: systemPrompt,
-        prompt: `CONVERSATION TO COMPACT:\n${conversationText}`,
+        messages: [{ role: 'user', content: `CONVERSATION TO COMPACT:\n${conversationText}` }],
       })
 
-      summary = result.text
+      summary = response.content[0].type === 'text' ? response.content[0].text : '[AI returned non-text response]'
     } catch (err) {
       console.warn(`[ContextManager] AI compaction failed for ${this.creatureId}, using naive fallback:`, err)
       // Naive fallback: keep last 50 messages unchanged

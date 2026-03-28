@@ -522,7 +522,7 @@ function createWindow(): BrowserWindow {
     hookRegistry.callHook('onSkillCompiled', { skillPath: skill.manifest.path, skillName: skill.manifest.name, creatureId: args.creatureId })
     return skill
   })
-  ipcMain.handle('skill:list', (_e, creatureId?: string) => {
+  ipcMain.handle('skill:list', async (_e, creatureId?: string) => {
     const { SkillCompiler } = await import('./skill-compiler')
     return SkillCompiler.listSkills(creatureId)
   })

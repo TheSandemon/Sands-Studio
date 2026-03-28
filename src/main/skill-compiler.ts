@@ -5,6 +5,7 @@
 
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync, readdirSync } from 'fs'
 import { join } from 'path'
+import Anthropic from '@anthropic-ai/sdk'
 import type { CompiledSkill, SkillManifest } from '../shared/dreamstate-types'
 
 // ── HOME directory ─────────────────────────────────────────────────────────────
@@ -238,16 +239,18 @@ Skill Name: ${name}
 Description: ${description ?? '(none provided)'}`
 
     try {
-      const { generateText } = await import('ai')
-
-      const result = await generateText({
+      const apiKey = process.env.ANTHROPIC_API_KEY ?? ''
+      const client = new Anthropic({ apiKey })
+      const response = await client.messages.create({
         model: 'claude-haiku',
+        max_tokens: 1024,
         system: systemPrompt,
-        prompt: 'Generate the SKILL.md content based on the context above.',
+        messages: [{ role: 'user', content: 'Generate the SKILL.md content based on the context above.' }],
       })
 
-      if (result.text && result.text.trim().length > 0) {
-        return result.text.trim()
+      const text = response.content[0].type === 'text' ? response.content[0].text : ''
+      if (text.trim().length > 0) {
+        return text.trim()
       }
     } catch (err) {
       console.warn('[SkillCompiler] AI generation failed, using fallback template:', err)
