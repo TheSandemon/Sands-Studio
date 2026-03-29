@@ -25,13 +25,127 @@ function defaultShellConfig(name: string, index: number): ShellConfig {
   }
 }
 
+async function buildShellConfigs(
+  initialHabitat: Habitat | undefined,
+  activeHabitatId: string | null,
+  getTerminals: () => Array<{ id: string; name: string; shellConfig?: ShellConfig }>,
+): Promise<ShellConfig[]> {
+  if (initialHabitat) {
+    // Merge: include all saved shells + any new terminals not yet in the habitat.
+    // Match terminals to saved shells by ID first, then by name as a fallback
+    // (habitat:apply regenerates terminal IDs from creature.id, breaking ID matching).
+    const savedIds = new Set(initialHabitat.shells.map((s) => s.id))
+    const savedNames = new Map(initialHabitat.shells.map((s) => [s.name.toLowerCase(), s]))
+    const currentTerminals = getTerminals()
+
+    // Exclude terminals that either match a saved shell by ID or by name.
+    const newTerminals = currentTerminals.filter((t) => {
+      if (savedIds.has(t.id)) return false
+      const nameKey = (t.name || '').toLowerCase()
+      if (savedNames.has(nameKey)) return false
+      return true
+    })
+
+    const savedResults = await Promise.all(
+      initialHabitat.shells.map(async (shell) => {
+        const mem = shell.creature?.id && window.creatureAPI
+          ? await window.creatureAPI.loadMemory(shell.creature.id, activeHabitatId ?? undefined).catch(() => null)
+          : null
+        // Try to find a matching terminal by name to update the shell's ID to the
+        // current terminal ID (prevents duplicate entries in the shell list).
+        const nameKey = (shell.name || '').toLowerCase()
+        const matchedTerminal = savedNames.has(nameKey)
+          ? currentTerminals.find((t) => (t.name || '').toLowerCase() === nameKey)
+          : undefined
+        const base: ShellConfig = {
+          ...shell,
+          ...(matchedTerminal ? { id: matchedTerminal.id } : {}),
+        }
+        if (mem) {
+          base.creature = {
+            id: mem.id,
+            name: mem.name,
+            specialty: mem.specialty,
+            hatched: mem.hatched,
+            eggStep: mem.eggStep,
+            apiKey: mem.apiKey,
+            baseURL: mem.baseURL,
+            model: mem.model,
+            mcpServers: mem.mcpServers,
+            createdAt: mem.createdAt,
+          }
+        }
+        return base
+      })
+    )
+
+    const newResults = await Promise.all(
+      newTerminals.map(async (t, i) => {
+        const mem = t.id && window.creatureAPI
+          ? await window.creatureAPI.loadMemory(t.id, activeHabitatId ?? undefined).catch(() => null)
+          : null
+        const base: ShellConfig = t.shellConfig
+          ? { ...t.shellConfig, id: t.id, name: t.name }
+          : defaultShellConfig(t.name || `Shell ${i + 1}`, i)
+        if (mem) {
+          base.creature = {
+            id: mem.id,
+            name: mem.name,
+            specialty: mem.specialty,
+            hatched: mem.hatched,
+            eggStep: mem.eggStep,
+            apiKey: mem.apiKey,
+            baseURL: mem.baseURL,
+            model: mem.model,
+            mcpServers: mem.mcpServers,
+            createdAt: mem.createdAt,
+          }
+        }
+        return base
+      })
+    )
+
+    return [...savedResults, ...newResults]
+  }
+
+  const terminals = getTerminals()
+  if (terminals.length === 0) {
+    return [defaultShellConfig('Shell 1', 0)]
+  }
+
+  const results = await Promise.all(
+    terminals.map(async (t, i) => {
+      const mem = t.id && window.creatureAPI
+        ? await window.creatureAPI.loadMemory(t.id, activeHabitatId ?? undefined).catch(() => null)
+        : null
+      const base: ShellConfig = t.shellConfig
+        ? { ...t.shellConfig, id: t.id, name: t.name }
+        : defaultShellConfig(t.name || `Shell ${i + 1}`, i)
+      if (mem) {
+        base.creature = {
+          id: mem.id,
+          name: mem.name,
+          specialty: mem.specialty,
+          hatched: mem.hatched,
+          eggStep: mem.eggStep,
+          apiKey: mem.apiKey,
+          baseURL: mem.baseURL,
+          model: mem.model,
+          mcpServers: mem.mcpServers,
+          createdAt: mem.createdAt,
+        }
+      }
+      return base
+    })
+  )
+  return results
+}
+
 export default function HabitatSaveDialog({ onClose, initialHabitat }: Props) {
-  const terminals = useTerminalStore((s) => s.terminals)
-  const { addHabitat, updateHabitat, listHabitats } = useHabitatStore((s) => ({
-    addHabitat: s.addHabitat,
-    updateHabitat: s.updateHabitat,
-    listHabitats: s.listHabitats,
-  }))
+  const addHabitat = useHabitatStore((s) => s.addHabitat)
+  const updateHabitat = useHabitatStore((s) => s.updateHabitat)
+  const listHabitats = useHabitatStore((s) => s.listHabitats)
+  const activeHabitatId = useHabitatStore((s) => s.activeHabitatId)
 
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -40,99 +154,44 @@ export default function HabitatSaveDialog({ onClose, initialHabitat }: Props) {
   const [saving, setSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const dialogRef = useRef<HTMLDivElement>(null)
+  const mounted = useRef(true)
 
-  // Build shell configs on mount — load creature memory for each shell
+  // Load shell configs on mount
   useEffect(() => {
-    let cancelled = false
+    mounted.current = true
     setIsLoading(true)
 
-    const buildShells = async () => {
-      let built: ShellConfig[]
-
-      if (initialHabitat) {
-        // Self-save mode: pre-fill name/description from stored habitat,
-        // but reload creature memory for each shell so hatching state is current
-        const withMemory = await Promise.all(
-          initialHabitat.shells.map(async (shell) => {
-            const memory: CreatureConfig | null =
-              shell.creature?.id && window.creatureAPI
-                ? await window.creatureAPI.loadMemory(shell.creature.id).catch(() => null)
-                : null
-            const base: ShellConfig = { ...shell }
-            if (memory) {
-              base.creature = {
-                id: memory.id,
-                name: memory.name,
-                specialty: memory.specialty,
-                hatched: memory.hatched,
-                eggStep: memory.eggStep,
-                apiKey: memory.apiKey,
-                baseURL: memory.baseURL,
-                model: memory.model,
-                mcpServers: memory.mcpServers,
-                createdAt: memory.createdAt,
-              }
-            }
-            return base
-          })
-        )
-        built = withMemory
-      } else if (terminals.length === 0) {
-        built = [defaultShellConfig('Shell 1', 0)]
-      } else {
-        // New save mode: build from live terminals, reload creature memory for each
-        const withMemory = await Promise.all(
-          terminals.map(async (t, i) => {
-            const memory: CreatureConfig | null =
-              t.id && window.creatureAPI
-                ? await window.creatureAPI.loadMemory(t.id).catch(() => null)
-                : null
-            const base: ShellConfig = t.shellConfig
-              ? { ...t.shellConfig, id: t.id, name: t.name }
-              : defaultShellConfig(t.name || `Shell ${i + 1}`, i)
-            if (memory) {
-              base.creature = {
-                id: memory.id,
-                name: memory.name,
-                specialty: memory.specialty,
-                hatched: memory.hatched,
-                eggStep: memory.eggStep,
-                apiKey: memory.apiKey,
-                baseURL: memory.baseURL,
-                model: memory.model,
-                mcpServers: memory.mcpServers,
-                createdAt: memory.createdAt,
-              }
-            }
-            return base
-          })
-        )
-        built = withMemory
-      }
-
-      if (!cancelled) {
+    buildShellConfigs(
+      initialHabitat,
+      activeHabitatId ?? null,
+      () => useTerminalStore.getState().terminals,
+    )
+      .then((built) => {
+        if (!mounted.current) return
         setShells(built)
         if (initialHabitat) {
           setName(initialHabitat.name)
           setDescription(initialHabitat.description ?? '')
         }
         setIsLoading(false)
-      }
-    }
-
-    buildShells().catch((err) => {
-      console.error('[HabitatSaveDialog] buildShells failed:', err)
-      if (!cancelled) {
-        setShells(terminals.length === 0
-          ? [defaultShellConfig('Shell 1', 0)]
-          : terminals.map((t, i) => t.shellConfig
-              ? { ...t.shellConfig, id: t.id, name: t.name }
-              : defaultShellConfig(t.name || `Shell ${i + 1}`, i)))
+      })
+      .catch(() => {
+        if (!mounted.current) return
+        const terminals = useTerminalStore.getState().terminals
+        setShells(
+          terminals.length === 0
+            ? [defaultShellConfig('Shell 1', 0)]
+            : terminals.map((t, i) =>
+                t.shellConfig
+                  ? { ...t.shellConfig, id: t.id, name: t.name }
+                  : defaultShellConfig(t.name || `Shell ${i + 1}`, i)
+              )
+        )
         setIsLoading(false)
-      }
-    })
-    return () => { cancelled = true }
-  }, [terminals, initialHabitat])
+      })
+
+    return () => { mounted.current = false }
+  }, []) // intentionally empty — run once on mount
 
   const updateShell = useCallback((index: number, patch: Partial<ShellConfig>) => {
     setShells((prev) => {
@@ -144,6 +203,8 @@ export default function HabitatSaveDialog({ onClose, initialHabitat }: Props) {
   }, [])
 
   const handleSave = useCallback(async () => {
+    console.log('[HabitatSaveDialog] handleSave: shells=', shells.length, 'habitats=', listHabitats().length)
+    try {
     if (!name.trim()) {
       alert('Please enter a habitat name.')
       return
@@ -215,9 +276,18 @@ export default function HabitatSaveDialog({ onClose, initialHabitat }: Props) {
       },
     }).catch(() => {})
 
+    // Sync habitat IDs to main process for DreamState migration tracking
+    const allIds = listHabitats().map((h) => h.id)
+    if (!allIds.includes(habitatId)) allIds.push(habitatId)
+    window.habitatAPI?.trackHabitats?.(allIds).catch(() => {})
+
     setSaving(false)
     onClose()
-  }, [name, description, shells, initialHabitat, addHabitat, updateHabitat, listHabitats, onClose])
+    } catch (err) {
+      console.error('[HabitatSaveDialog] handleSave failed:', err)
+      setSaving(false)
+    }
+  }, [name, description, shells, initialHabitat, addHabitat, updateHabitat, listHabitats, onClose, activeHabitatId])
 
   const handleClose = useCallback(() => {
     if (dirty && !confirm('Discard unsaved changes?')) return
