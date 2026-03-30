@@ -17,7 +17,7 @@ import { useModuleStore } from './stores/useModuleStore'
 import { useHabitatStore } from './store/useHabitatStore'
 import ModuleView from './module-engine/ModuleView'
 import type { ModuleManifest } from './module-engine/types'
-import type { ShellConfig, CreatureConfig, Habitat } from '../shared/habitatTypes'
+import type { ShellConfig, CreatureConfig, Habitat as HabitatSpec } from '../shared/habitatTypes'
 import './styles/global.css'
 
 // ---------------------------------------------------------------------------

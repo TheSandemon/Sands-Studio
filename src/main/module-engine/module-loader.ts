@@ -16,7 +16,7 @@ import type {
 // Resolve modules dir correctly in both dev and packaged builds:
 // - Dev:         app.getAppPath() → project root  → modules/ is at project root
 // - Packaged:    app.getAppPath() → app/ dir      → resources/modules/ is one level up
-function getModulesDir(): string {
+function resolveModulesDir(): string {
   const appPath = app.getAppPath()
   // If modules/ exists directly under app path (dev), use it
   const devPath = resolve(appPath, 'modules')
@@ -25,7 +25,11 @@ function getModulesDir(): string {
   return resolve(appPath, '..', 'resources', 'modules')
 }
 
-const MODULES_DIR = getModulesDir()
+let _modulesDir: string | null = null
+function getModulesDir(): string {
+  if (!_modulesDir) _modulesDir = resolveModulesDir()
+  return _modulesDir
+}
 
 // ── Module Loading ────────────────────────────────────────────────────────────
 
@@ -38,14 +42,14 @@ export interface LoadedModule {
 }
 
 export function listModules(): string[] {
-  if (!fs.existsSync(MODULES_DIR)) return []
-  return fs.readdirSync(MODULES_DIR, { withFileTypes: true })
+  if (!fs.existsSync(getModulesDir())) return []
+  return fs.readdirSync(getModulesDir(), { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name)
 }
 
 export async function loadModule(id: string): Promise<LoadedModule> {
-  const modulePath = path.join(MODULES_DIR, id)
+  const modulePath = path.join(getModulesDir(), id)
 
   if (!fs.existsSync(modulePath)) {
     throw new Error(`Module '${id}' not found at ${modulePath}`)
@@ -438,7 +442,7 @@ export function saveBootstrap(
   moduleId: string,
   data: { manifest: ModuleManifest; world: WorldState; agents: AgentRole[] }
 ): string {
-  const modulePath = path.join(MODULES_DIR, moduleId)
+  const modulePath = path.join(getModulesDir(), moduleId)
   fs.mkdirSync(modulePath, { recursive: true })
   fs.mkdirSync(path.join(modulePath, 'assets', 'tiles'), { recursive: true })
   fs.mkdirSync(path.join(modulePath, 'assets', 'entities'), { recursive: true })
@@ -462,4 +466,11 @@ export function saveBootstrap(
   }
 
   return modulePath
+}
+
+export function deleteModule(moduleId: string): void {
+  const modulePath = path.join(getModulesDir(), moduleId)
+  if (fs.existsSync(modulePath)) {
+    fs.rmSync(modulePath, { recursive: true, force: true })
+  }
 }
