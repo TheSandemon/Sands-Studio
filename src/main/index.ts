@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join, resolve } from 'path'
 import fs from 'fs'
 import { ptyManager } from './pty-manager'
-import { dispatchAgentMessage, stopAgent } from './agent-runner'
+import { dispatchAgentMessage, stopAgent, setHabitatBus } from './agent-runner'
 import { listModules, loadModule, buildAssetRegistry, bootstrapModule, saveBootstrap, getBootstrapQuestions, getQuestionSuggestions, deleteModule } from './module-engine/module-loader'
 import type { ModuleSnapshot } from './module-engine/orchestrator'
 import { ModuleOrchestrator } from './module-engine/orchestrator'
@@ -10,6 +10,7 @@ import { HabitatLog } from './habitat-log'
 import { ContextManager } from './context-manager'
 import { HookRegistry } from './hook-registry'
 import { PluginRegistry } from './plugin-registry'
+import { HabitatBus } from './habitat-bus'
 
 // DreamState module-level singletons
 const habitatLogs = new Map<string, HabitatLog>()
@@ -21,6 +22,16 @@ const pluginRegistry = new PluginRegistry([
   join(HOME, '.terminal-habitat', 'plugins'),
   join(process.cwd(), 'plugins'),
 ])
+
+// HabitatBus singleton — lives for the lifetime of the app
+let habitatBusInstance: HabitatBus | null = null
+
+function getHabitatBus(): HabitatBus {
+  if (!habitatBusInstance) {
+    habitatBusInstance = new HabitatBus('global')
+  }
+  return habitatBusInstance
+}
 
 // Track which habitat is currently active (set by habitat:apply IPC)
 let currentHabitatId: string | null = null
@@ -111,6 +122,37 @@ function createWindow(): BrowserWindow {
     dispatchAgentMessage(terminalId, message, win, defaults)
   })
   ipcMain.on('agent:stop', (_e, terminalId: string) => stopAgent(terminalId))
+
+  ipcMain.handle('agent:list', () => {
+    const dir = resolve(process.cwd(), '.habitat', 'agents')
+    if (!fs.existsSync(dir)) return []
+    return fs.readdirSync(dir)
+      .filter((file) => file.endsWith('.json'))
+      .map((file) => JSON.parse(fs.readFileSync(join(dir, file), 'utf8')))
+  })
+
+  ipcMain.handle('agent:load', (_e, id: string, habitatId: string, shellIndex: number) => {
+    const dir = resolve(process.cwd(), '.habitat', 'agents')
+    const filePath = join(dir, `${id}.json`)
+    if (!fs.existsSync(filePath)) throw new Error('Agent not found')
+    const agent = JSON.parse(fs.readFileSync(filePath, 'utf8'))
+    return agent
+  })
+
+  ipcMain.handle('agent:delete', (_e, id: string) => {
+    const dir = resolve(process.cwd(), '.habitat', 'agents')
+    const filePath = join(dir, `${id}.json`)
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+    return { ok: true }
+  })
+
+  ipcMain.handle('agent:save', (_e, agent: { id: string; [key: string]: unknown }) => {
+    const dir = resolve(process.cwd(), '.habitat', 'agents')
+    fs.mkdirSync(dir, { recursive: true })
+    const filePath = join(dir, `${agent.id}.json`)
+    fs.writeFileSync(filePath, JSON.stringify(agent, null, 2))
+    return { ok: true }
+  })
 
   // ── Creature memory IPC ──────────────────────────────────────────────────
   ipcMain.handle('creature:load-memory', (_e, id: string) => {
@@ -389,6 +431,21 @@ function createWindow(): BrowserWindow {
     return { ok: true }
   })
 
+  ipcMain.handle('habitat:clear', () => {
+    currentHabitatId = null
+    currentHabitatName = ''
+    ptyManager.killAll()
+    if (!win.isDestroyed()) {
+      win.webContents.send('terminal:batch-created', { sessions: [] })
+    }
+    return { ok: true }
+  })
+
+  ipcMain.handle('habitat:track', (_e, habitatIds: string[]) => {
+    // Store tracked habitats for DreamState/sync purposes
+    return { ok: true }
+  })
+
   ipcMain.handle('habitat:get-current-id', () => {
     return currentHabitatId
   })
@@ -535,6 +592,98 @@ function createWindow(): BrowserWindow {
     const { SkillCompiler } = await import('./skill-compiler')
     return SkillCompiler.listSkills(creatureId)
   })
+
+  // ── HabitatComms IPC ─────────────────────────────────────────────────────
+  const bus = getHabitatBus()
+
+  // Forward bus events to the renderer window
+  bus.on('message', (msg: import('../shared/habitatCommsTypes').HabitatMessage) => {
+    if (!win.isDestroyed()) {
+      win.webContents.send('comms:message', msg)
+    }
+  })
+  bus.on('status-change', (info: import('../shared/habitatCommsTypes').AgentStatusInfo) => {
+    if (!win.isDestroyed()) {
+      win.webContents.send('comms:status-change', info)
+    }
+  })
+  bus.on('collision-detected', (result: import('../shared/habitatCommsTypes').CollisionResult) => {
+    if (!win.isDestroyed()) {
+      win.webContents.send('comms:collision', result)
+    }
+  })
+
+  ipcMain.handle('comms:register-agent', async (_e, creatureId: string, name: string) => {
+    await bus.registerAgent(creatureId, name)
+    return { ok: true }
+  })
+  ipcMain.handle('comms:unregister-agent', async (_e, creatureId: string) => {
+    await bus.unregisterAgent(creatureId)
+    return { ok: true }
+  })
+  ipcMain.handle('comms:send', async (_e, input: import('../shared/habitatCommsTypes').SendMessageInput) => {
+    return await bus.send(input)
+  })
+  ipcMain.handle('comms:send-direct', async (_e, recipientId: string, senderId: string, senderName: string, content: string) => {
+    return await bus.sendDirect(recipientId, senderId, senderName, content)
+  })
+  ipcMain.handle('comms:broadcast', async (_e, senderId: string, senderName: string, content: string) => {
+    return await bus.broadcast(senderId, senderName, content)
+  })
+  ipcMain.handle('comms:reply', async (_e, threadId: string, senderId: string, senderName: string, content: string) => {
+    return await bus.reply(threadId, senderId, senderName, content)
+  })
+  ipcMain.handle('comms:get-messages', async (_e, creatureId: string, opts?: import('../shared/habitatCommsTypes').MessageQueryOpts) => {
+    return await bus.getMessages(creatureId, opts)
+  })
+  ipcMain.handle('comms:get-thread', async (_e, threadId: string) => {
+    return await bus.getThread(threadId)
+  })
+  ipcMain.handle('comms:get-recent', async (_e, creatureId: string, limit?: number) => {
+    return await bus.getRecentMessages(creatureId, limit)
+  })
+  ipcMain.handle('comms:get-status', () => {
+    return bus.getAllAgentStatuses()
+  })
+  ipcMain.handle('comms:set-status', (_e, creatureId: string, status: import('../shared/habitatCommsTypes').AgentStatus) => {
+    bus.setAgentStatus(creatureId, status)
+    return { ok: true }
+  })
+  ipcMain.handle('comms:claim-intent', async (_e, creatureId: string, intent: import('../shared/habitatCommsTypes').IntentPayload) => {
+    return await bus.claimIntent(creatureId, intent)
+  })
+  ipcMain.handle('comms:release-intent', async (_e, creatureId: string, intentType: string, target: string) => {
+    await bus.releaseIntent(creatureId, intentType, target)
+    return { ok: true }
+  })
+  ipcMain.handle('comms:check-intents', async (_e, target: string) => {
+    return await bus.checkIntents(target)
+  })
+  ipcMain.handle('comms:record-file-edit', async (_e, event: import('../shared/habitatCommsTypes').FileEditEvent) => {
+    return await bus.recordFileEdit(event)
+  })
+  ipcMain.handle('comms:check-collision', (_e, filePath: string, windowMs?: number) => {
+    return bus.checkCollision(filePath, windowMs)
+  })
+  ipcMain.handle('comms:build-handoff', async (_e, sourceId: string, targetId: string) => {
+    const cm = getContextManager(sourceId)
+    return await bus.buildHandoffBundle(
+      sourceId,
+      targetId,
+      (id) => getContextManager(id).getNotes(),
+      async (id, since) => {
+        const msgs = await bus.getMessages(id, { since })
+        return msgs
+      },
+      (id) => getContextManager(id).getSummary() ?? ''
+    )
+  })
+  ipcMain.handle('comms:send-handoff', async (_e, targetId: string, bundle: import('../shared/habitatCommsTypes').HandoffBundle) => {
+    return await bus.sendHandoff(targetId, bundle)
+  })
+
+  // Tell agent-runner about the bus so it can use it for broadcasts
+  setHabitatBus(getHabitatBus)
 
   if (process.env.ELECTRON_RENDERER_URL) {
     win.loadURL(process.env.ELECTRON_RENDERER_URL)

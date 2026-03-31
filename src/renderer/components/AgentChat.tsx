@@ -42,7 +42,7 @@ export default function AgentChat({ session }: Props) {
       eggStarted.current = true
       setAgentRunning(session.id, true)
       setTermState(session.id, 'egg')
-      window.agentAPI.start(session.id, '__egg_init__')
+      window.agentAPI?.start(session.id, '__egg_init__')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -119,7 +119,7 @@ export default function AgentChat({ session }: Props) {
     } else {
       setTermState(session.id, 'talking')
     }
-    window.agentAPI.start(session.id, msg, {
+    window.agentAPI?.start(session.id, msg, {
       model: defaultModel || undefined,
       baseURL: defaultBaseURL || undefined,
     })
@@ -171,7 +171,7 @@ export default function AgentChat({ session }: Props) {
         {agentRunning && (
           <button
             className="agent-stop"
-            onClick={() => window.agentAPI.stop(session.id)}
+            onClick={() => window.agentAPI?.stop(session.id)}
           >
             ■
           </button>

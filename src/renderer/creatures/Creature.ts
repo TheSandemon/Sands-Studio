@@ -60,17 +60,20 @@ export class Creature {
   private readonly IDLE_WANDER_INTERVAL = 180 // frames between new random targets
 
   private nameLabel: PIXI.Text | null = null
+  private computerIcon?: { getAgentStandX: () => number, getAgentStandY: () => number }
 
   constructor(
     terminalId: string,
     textureMap: TextureMap | Record<string, PIXI.Texture[]>,
     fpsMap: FpsMap | Record<string, number>,
-    territory: Territory
+    territory: Territory,
+    computerIcon?: { getAgentStandX: () => number, getAgentStandY: () => number }
   ) {
     this.terminalId = terminalId
     this.textureMap = textureMap
     this.fpsMap = fpsMap
     this.territory = territory
+    this.computerIcon = computerIcon
 
     this.container = new PIXI.Container()
 
@@ -112,9 +115,14 @@ export class Creature {
   }
 
   setTerritory(territory: Territory): void {
+    if (!territory) return
     this.territory = territory
     this.clampToTerritory()
     this.pickNewTarget()
+  }
+
+  setComputerIcon(icon: { getAgentStandX: () => number, getAgentStandY: () => number } | undefined): void {
+    this.computerIcon = icon
   }
 
   /** Show or hide a name label below this creature. */
@@ -187,16 +195,34 @@ export class Creature {
   }
 
   private pickNewTarget(): void {
+    if (!this.territory || !this.sprite || this.sprite.destroyed) return
     const { x, y, width, height } = this.territory
-    const spriteW = this.sprite.width
-    const spriteH = this.sprite.height
+    
+    let spriteW = 36
+    let spriteH = 36
+    try {
+      spriteW = this.sprite.width || 36
+      spriteH = this.sprite.height || 36
+    } catch (err) {
+      // Fallback if Pixi bounds computation throws immediately after creation/hatching
+    }
 
-    this.targetX = x + spriteW / 2 + Math.random() * Math.max(0, width - spriteW)
-    this.targetY = y + spriteH / 2 + Math.random() * Math.max(0, height - spriteH)
+    if (this.computerIcon) {
+      // Stand directly beside the computer icon
+      this.targetX = this.computerIcon.getAgentStandX()
+      this.targetY = this.computerIcon.getAgentStandY()
+    } else {
+      // Random wandering inside territory
+      this.targetX = x + spriteW / 2 + Math.random() * Math.max(0, width - spriteW)
+      this.targetY = y + spriteH / 2 + Math.random() * Math.max(0, height - spriteH)
+    }
   }
 
   private clampToTerritory(): void {
+    if (!this.territory || !this.container || this.container.destroyed || !this.sprite || this.sprite.destroyed) return
+
     const { x, y, width, height } = this.territory
+    
     this.container.x = Math.max(x, Math.min(x + width, this.container.x))
     this.container.y = Math.max(y, Math.min(y + height, this.container.y))
   }

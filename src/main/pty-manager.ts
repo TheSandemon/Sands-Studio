@@ -36,6 +36,15 @@ export class PtyManager extends EventEmitter {
     })
   }
 
+  createWithConfig(id: string, config: import('../shared/habitatTypes').ShellConfig, cols?: number, rows?: number): void {
+    this.create(id, {
+      shell: config.shell,
+      cwd: config.cwd,
+      cols: cols,
+      rows: rows
+    })
+  }
+
   write(id: string, data: string): void {
     this.sessions.get(id)?.write(data)
   }
@@ -47,6 +56,10 @@ export class PtyManager extends EventEmitter {
   kill(id: string): void {
     try { this.sessions.get(id)?.kill() } catch {}
     this.sessions.delete(id)
+  }
+
+  killAll(): void {
+    this.dispose()
   }
 
   /**

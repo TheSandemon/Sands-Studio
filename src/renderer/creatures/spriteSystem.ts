@@ -56,7 +56,8 @@ export function buildCreatureTextures(
   const textureMap = {} as TextureMap
   const fpsMap = {} as FpsMap
 
-  for (const [state, anim] of Object.entries(def.animations) as [CreatureStateName, typeof def.animations[CreatureStateName]][]) {
+  for (const [state, anim] of Object.entries(def.animations) as [CreatureStateName, (typeof def.animations)[CreatureStateName]][]) {
+    if (!anim) continue
     textureMap[state] = anim.frames.map((f) => frameToTexture(renderer, f, def.scale))
     fpsMap[state] = anim.fps
   }
@@ -73,8 +74,9 @@ export function buildCreatureTextures(
 export interface ManifestCreature {
   id: string
   displayName: string
-  scale: number
-  animations: Record<
+  scale?: number
+  spriteSheet?: string
+  animations?: Record<
     string,
     {
       fps: number
@@ -89,15 +91,42 @@ export async function loadManifestCreature(
   const textureMap: Record<string, PIXI.Texture[]> = {}
   const fpsMap: Record<string, number> = {}
 
-  for (const [state, anim] of Object.entries(manifestEntry.animations)) {
-    const textures: PIXI.Texture[] = []
-    for (const path of anim.frames) {
-      const texture = await PIXI.Assets.load(path)
-      texture.source.scaleMode = 'nearest'
-      textures.push(texture)
+  if (manifestEntry.spriteSheet) {
+    // Replace .png with .json to load the Pixi spritesheet bundle
+    const jsonPath = `/assets/sprites/${manifestEntry.spriteSheet.replace('.png', '.json')}`
+    try {
+      const sheet = await PIXI.Assets.load(jsonPath)
+      if (sheet && sheet.animations) {
+        for (const [state, textures] of Object.entries(sheet.animations)) {
+          const texArray = textures as PIXI.Texture[]
+          for (const tex of texArray) {
+            tex.source.scaleMode = 'nearest'
+          }
+          textureMap[state] = texArray
+          fpsMap[state] = sheet.data?.meta?.framerate || 8 // default to 8 fps if missing
+        }
+      }
+    } catch (e) {
+      console.error(`Failed to load spritesheet JSON for ${manifestEntry.id}:`, e)
     }
-    textureMap[state] = textures
-    fpsMap[state] = anim.fps
+  } else if (manifestEntry.animations) {
+    // Legacy fallback
+    for (const [state, anim] of Object.entries(manifestEntry.animations)) {
+      const textures: PIXI.Texture[] = []
+      for (const path of anim.frames) {
+        const texture = await PIXI.Assets.load(path)
+        texture.source.scaleMode = 'nearest'
+        textures.push(texture)
+      }
+      textureMap[state] = textures
+      fpsMap[state] = anim.fps
+    }
+  }
+
+  // Ensure idle always exists or falls back to first available animation
+  if (!textureMap['idle'] && Object.keys(textureMap).length > 0) {
+    textureMap['idle'] = Object.values(textureMap)[0]
+    fpsMap['idle'] = Object.values(fpsMap)[0] || 8
   }
 
   return { textureMap, fpsMap }

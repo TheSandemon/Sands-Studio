@@ -114,6 +114,81 @@ export interface LoadedPlugin {
   instance: object
 }
 
+// ── HabitatComms types (cross-process) ───────────────────────────────────────
+
+export type AgentStatus = 'active' | 'listening' | 'blocked' | 'inactive'
+export type MessageType = 'direct' | 'broadcast' | 'thread' | 'intent' | 'handoff' | 'status_update'
+
+export interface HabitatMessage {
+  id: string
+  type: MessageType
+  sender: string
+  senderName: string
+  recipients?: string[]
+  threadId?: string
+  content: string
+  intent?: IntentPayload
+  timestamp: number
+  ttl: number
+  expires_at?: number
+}
+
+export interface IntentPayload {
+  type: 'file_edit' | 'task' | 'context_handoff'
+  target: string
+  claimedBy: string
+  expiresAt: number
+}
+
+export interface AgentStatusInfo {
+  id: string
+  name: string
+  status: AgentStatus
+  lastSeen: number
+  currentIntent?: IntentPayload
+  threadCount: number
+  unreadCount: number
+}
+
+export interface FileEditEvent {
+  creatureId: string
+  filePath: string
+  timestamp: number
+  command?: string
+}
+
+export interface CollisionResult {
+  hasCollision: boolean
+  editingCreatures: Array<{ id: string; name: string; startedAt: number }>
+  collisionWindowMs: number
+}
+
+export interface HandoffBundle {
+  sourceId: string
+  targetId: string
+  summary: string
+  recentMessages: HabitatMessage[]
+  notes: string
+  timestamp: number
+}
+
+export interface SendMessageInput {
+  type: MessageType
+  sender: string
+  senderName: string
+  recipients?: string[]
+  threadId?: string
+  content: string
+  intent?: IntentPayload
+  ttl?: number
+}
+
+export interface MessageQueryOpts {
+  since?: number
+  type?: MessageType
+  limit?: number
+}
+
 // Window API interfaces
 export interface HabitatlogAPI {
   getLastActive: () => Promise<LastActiveHabitat | null>
@@ -153,11 +228,36 @@ export interface SkillAPI {
   delete: (opts: { path: string }) => Promise<void>
 }
 
+export interface HabitatCommsAPI {
+  registerAgent: (creatureId: string, name: string) => Promise<void>
+  unregisterAgent: (creatureId: string) => Promise<void>
+  send: (input: SendMessageInput) => Promise<HabitatMessage>
+  sendDirect: (recipientId: string, senderId: string, senderName: string, content: string) => Promise<HabitatMessage>
+  broadcast: (senderId: string, senderName: string, content: string) => Promise<HabitatMessage>
+  reply: (threadId: string, senderId: string, senderName: string, content: string) => Promise<HabitatMessage>
+  getMessages: (creatureId: string, opts?: MessageQueryOpts) => Promise<HabitatMessage[]>
+  getThread: (threadId: string) => Promise<HabitatMessage[]>
+  getRecent: (creatureId: string, limit?: number) => Promise<HabitatMessage[]>
+  getStatus: () => Promise<AgentStatusInfo[]>
+  setStatus: (creatureId: string, status: AgentStatus) => Promise<void>
+  claimIntent: (creatureId: string, intent: IntentPayload) => Promise<{ ok: boolean; collision?: CollisionResult }>
+  releaseIntent: (creatureId: string, intentType: string, target: string) => Promise<void>
+  checkIntents: (target: string) => Promise<IntentPayload[]>
+  recordFileEdit: (event: FileEditEvent) => Promise<CollisionResult>
+  checkCollision: (filePath: string, windowMs?: number) => Promise<CollisionResult>
+  buildHandoff: (sourceId: string, targetId: string) => Promise<HandoffBundle>
+  sendHandoff: (targetId: string, bundle: HandoffBundle) => Promise<HabitatMessage>
+  onMessage: (cb: (msg: HabitatMessage) => void) => () => void
+  onStatusChange: (cb: (info: AgentStatusInfo) => void) => () => void
+  onCollision: (cb: (result: CollisionResult) => void) => () => void
+}
+
 // ── Global window augmentation ──────────────────────────────────────────────
 
 declare global {
   interface Window {
     habitatlogAPI: HabitatlogAPI
+    habitatCommsAPI: HabitatCommsAPI
     contextAPI: ContextAPI
     hookAPI: HookAPI
     pluginAPI: PluginAPI
@@ -186,6 +286,10 @@ declare global {
       start: (terminalId: string, message: string, defaults?: { model?: string; baseURL?: string }) => Promise<void>
       stop: (terminalId: string) => void
       onEvent: (cb: (terminalId: string, type: string, payload: unknown) => void) => () => void
+      save: (agent: object) => Promise<{ ok: boolean; error?: string }>
+      list: () => Promise<unknown[]>
+      load: (id: string, habitatId: string, shellIndex: number) => Promise<unknown>
+      delete: (id: string) => Promise<{ ok: boolean }>
     }
     creatureAPI: {
       loadMemory: (id: string) => Promise<CreatureMemory | null>
@@ -236,6 +340,7 @@ declare global {
     mcpServers?: MCPServer[]
     hatched: boolean
     createdAt: string
+    spriteId?: string
     messages: unknown[]
   }
 }

@@ -7,6 +7,8 @@ import path from 'path'
 import { ptyManager } from './pty-manager'
 import { getContextManager } from './index'
 import type { ContextManager } from './context-manager'
+import type { HabitatBus } from './habitat-bus'
+import type { IntentPayload, FileEditEvent } from '../shared/habitatCommsTypes'
 
 const execAsync = promisify(exec)
 
@@ -15,6 +17,19 @@ const terminalCwd = new Map<string, string>()
 
 // Track which terminals have auto-compact started (one shot per terminal)
 const autoCompactStarted = new Set<string>()
+
+// ---------------------------------------------------------------------------
+// HabitatBus singleton — set by index.ts after app ready
+// ---------------------------------------------------------------------------
+let _habitatBusGetter: (() => HabitatBus) | null = null
+
+export function setHabitatBus(fn: () => HabitatBus): void {
+  _habitatBusGetter = fn
+}
+
+function getBus(): HabitatBus | null {
+  return _habitatBusGetter?.() ?? null
+}
 
 // ---------------------------------------------------------------------------
 // Memory
@@ -53,37 +68,6 @@ function saveMemory(id: string, memory: Partial<CreatureMemory> & { id: string }
 }
 
 // ---------------------------------------------------------------------------
-// Habitat bus — shared message channel across all creatures
-// ---------------------------------------------------------------------------
-interface HabitatMessage {
-  from: string
-  fromName: string
-  content: string
-  timestamp: number
-}
-
-const habitatBus: HabitatMessage[] = []
-const HABITAT_BUS_MAX = 20
-
-function broadcastToHabitat(
-  win: BrowserWindow,
-  from: string,
-  fromName: string,
-  content: string
-): void {
-  habitatBus.push({ from, fromName, content, timestamp: Date.now() })
-  if (habitatBus.length > HABITAT_BUS_MAX) habitatBus.shift()
-  // Wildcard '*' — every AgentChat panel receives this
-  if (!win.isDestroyed()) {
-    win.webContents.send('agent:event', '*', 'habitat_message', { from, fromName, content })
-  }
-}
-
-function getRecentHabitatMessages(excludeId: string): HabitatMessage[] {
-  return habitatBus.filter((m) => m.from !== excludeId).slice(-5)
-}
-
-// ---------------------------------------------------------------------------
 // Brain Router
 // ---------------------------------------------------------------------------
 async function fetchBrainRouter(): Promise<string> {
@@ -108,11 +92,6 @@ function sendEvent(win: BrowserWindow, terminalId: string, type: string, payload
   if (!win.isDestroyed()) {
     win.webContents.send('agent:event', terminalId, type, payload)
   }
-}
-
-function stripAnsi(s: string): string {
-  // eslint-disable-next-line no-control-regex
-  return s.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '').replace(/\x1B\][^\x07]*\x07/g, '')
 }
 
 // ---------------------------------------------------------------------------
@@ -143,6 +122,111 @@ const sendHabitatMessageTool: Anthropic.Tool = {
     required: ['message']
   }
 }
+
+const sendDirectMessageTool: Anthropic.Tool = {
+  name: 'send_direct_message',
+  description: 'Send a private message to a specific creature by their terminal ID.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      recipientId: { type: 'string', description: 'The terminal/creature ID to send to.' },
+      message: { type: 'string', description: 'The message content.' }
+    },
+    required: ['recipientId', 'message']
+  }
+}
+
+const getHabitatMessagesTool: Anthropic.Tool = {
+  name: 'get_habitat_messages',
+  description: 'Get recent messages from the habitat communication bus.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      limit: { type: 'number', description: 'Max messages to return (default 20).' }
+    }
+  }
+}
+
+const getAgentStatusesTool: Anthropic.Tool = {
+  name: 'get_agent_statuses',
+  description: 'Get the current status of all agents in the habitat.'
+}
+
+const claimFileIntentTool: Anthropic.Tool = {
+  name: 'claim_file_intent',
+  description: 'Claim an intent to edit a file. Returns collision info if another creature is editing it.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      filePath: { type: 'string', description: 'Path to the file.' },
+      intentType: { type: 'string', description: 'Type of intent: file_edit, task, or context_handoff.' }
+    },
+    required: ['filePath', 'intentType']
+  }
+}
+
+const releaseFileIntentTool: Anthropic.Tool = {
+  name: 'release_file_intent',
+  description: 'Release a previously claimed file edit intent.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      filePath: { type: 'string', description: 'Path to the file.' },
+      intentType: { type: 'string', description: 'Type of intent to release.' }
+    },
+    required: ['filePath', 'intentType']
+  }
+}
+
+const recordFileEditTool: Anthropic.Tool = {
+  name: 'record_file_edit',
+  description: 'Record a file edit and check for collisions with other creatures.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      filePath: { type: 'string', description: 'Path to the file that was edited.' },
+      command: { type: 'string', description: 'The shell command that triggered the edit.' }
+    },
+    required: ['filePath']
+  }
+}
+
+const checkFileCollisionTool: Anthropic.Tool = {
+  name: 'check_file_collision',
+  description: 'Check if any creature is currently editing a file.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      filePath: { type: 'string', description: 'Path to the file to check.' }
+    },
+    required: ['filePath']
+  }
+}
+
+const buildContextHandoffTool: Anthropic.Tool = {
+  name: 'build_context_handoff',
+  description: 'Build a context handoff bundle to send to another creature.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      targetCreatureId: { type: 'string', description: 'The creature ID to handoff context to.' }
+    },
+    required: ['targetCreatureId']
+  }
+}
+
+const ALL_TOOLS = [
+  runCommandTool,
+  sendHabitatMessageTool,
+  sendDirectMessageTool,
+  getHabitatMessagesTool,
+  getAgentStatusesTool,
+  claimFileIntentTool,
+  releaseFileIntentTool,
+  recordFileEditTool,
+  checkFileCollisionTool,
+  buildContextHandoffTool,
+]
 
 // ---------------------------------------------------------------------------
 // Egg conversation — rule-based state machine, no API key required
@@ -187,7 +271,19 @@ async function startEggConversation(
       'Got it (keeping that secret! 🔒). Last thing — which base URL should I use?\n\nPress Enter for the default (https://api.anthropic.com), or paste a custom URL:')
 
   } else if (step === 4) {
-    const baseURL = userMessage.trim() || 'https://api.anthropic.com'
+    let baseURL = userMessage.trim() || 'https://api.anthropic.com'
+    if (baseURL !== 'https://api.anthropic.com') {
+      if (!baseURL.startsWith('http://') && !baseURL.startsWith('https://')) {
+        baseURL = 'https://' + baseURL
+      }
+      try {
+        new URL(baseURL)
+      } catch {
+        sendEvent(win, terminalId, 'text', 'That URL doesn\'t look quite right. Please provide a valid HTTP/HTTPS URL, or press Enter to use the default.')
+        sendEvent(win, terminalId, 'done', null)
+        return
+      }
+    }
     const memory: CreatureMemory = {
       id: terminalId,
       name: existing!.name,
@@ -199,6 +295,13 @@ async function startEggConversation(
       messages: []
     }
     saveMemory(terminalId, memory)
+
+    // Register with habitat bus
+    const bus = getBus()
+    if (bus) {
+      await bus.registerAgent(terminalId, memory.name!)
+    }
+
     sendEvent(win, terminalId, 'text',
       `🥚💥 *CRACK* — I'M HATCHING! Hello world, I'm ${existing!.name}!`)
     sendEvent(win, terminalId, 'hatch', { name: existing!.name, specialty: existing!.specialty })
@@ -234,10 +337,12 @@ async function startAgent(
     autoCompactStarted.add(terminalId)
   }
 
-  const client = new Anthropic({
-    apiKey: memory.apiKey,
-    baseURL: memory.baseURL ?? defaults?.baseURL ?? 'https://api.anthropic.com'
-  })
+  // Register with habitat bus
+  const bus = getBus()
+  if (bus) {
+    await bus.registerAgent(terminalId, memory.name!)
+    bus.setAgentStatus(terminalId, 'active')
+  }
 
   const model = memory.model ?? defaults?.model
 
@@ -246,35 +351,46 @@ async function startAgent(
     terminalCwd.set(terminalId, process.cwd())
   }
 
-  // Inject recent habitat messages so this creature is aware of others
-  const recentMsgs = getRecentHabitatMessages(terminalId)
-  const habitatContext = recentMsgs.length
-    ? '\n\n--- HABITAT ACTIVITY (other creatures) ---\n' +
-      recentMsgs.map((m) => `[${m.fromName}]: ${m.content}`).join('\n')
-    : ''
-
-  const systemPrompt =
-    `You are ${memory.name}, a creature assistant specializing in ${memory.specialty}.\n` +
-    `You have access to a real terminal via run_command. Be helpful, concise, and reflect your specialty.\n` +
-    `You share a habitat with other creatures. Use send_habitat_message to broadcast short messages to them.\n` +
-    `You are connected to the Sands Cloud Brain expert network via the Brain Router below.\n\n` +
-    `--- BRAIN ROUTER ---\n${brainRouter}` +
-    habitatContext
-
-  const history = (memory.messages ?? []).slice(-60)
-  const messages: Anthropic.MessageParam[] = [
-    ...history,
-    { role: 'user', content: userMessage }
-  ]
-
   try {
+    let baseURL = memory.baseURL ?? defaults?.baseURL ?? 'https://api.anthropic.com'
+    if (!baseURL.startsWith('http://') && !baseURL.startsWith('https://')) {
+      baseURL = 'https://' + baseURL
+    }
+    new URL(baseURL) // validate
+
+    const client = new Anthropic({
+      apiKey: memory.apiKey,
+      baseURL
+    })
+
+    // Inject recent habitat messages so this creature is aware of others
+    const recentMsgs = bus ? await bus.getRecentMessages(terminalId, 5) : []
+    const habitatContext = recentMsgs.length
+      ? '\n\n--- HABITAT ACTIVITY (other creatures) ---\n' +
+        recentMsgs.map((m) => `[${m.senderName}]: ${m.content}`).join('\n')
+      : ''
+
+    const systemPrompt =
+      `You are ${memory.name}, a creature assistant specializing in ${memory.specialty}.\n` +
+      `You have access to a real terminal via run_command. Be helpful, concise, and reflect your specialty.\n` +
+      `You share a habitat with other creatures. Use send_habitat_message or send_direct_message to communicate.\n` +
+      `You are connected to the Sands Cloud Brain expert network via the Brain Router below.\n\n` +
+      `--- BRAIN ROUTER ---\n${brainRouter}` +
+      habitatContext
+
+    const history = (memory.messages ?? []).slice(-60)
+    const messages: Anthropic.MessageParam[] = [
+      ...history,
+      { role: 'user', content: userMessage }
+    ]
+
     while (state.running) {
       const response = await client.messages.create({
         model,
         max_tokens: 4096,
         system: systemPrompt,
         messages,
-        tools: [runCommandTool, sendHabitatMessageTool]
+        tools: ALL_TOOLS
       })
 
       messages.push({ role: 'assistant', content: response.content })
@@ -319,6 +435,26 @@ async function startAgent(
                 terminalCwd.set(terminalId, p.trim() || cwd)
               } catch { /* keep previous cwd */ }
 
+              // Record file edit and check for collision (after command completes)
+              if (bus && command) {
+                const { CollisionDetector } = await import('./collision-detector')
+                const paths = CollisionDetector.extractFilePaths(command)
+                for (const p2 of paths) {
+                  const result = await bus.recordFileEdit({
+                    creatureId: terminalId,
+                    filePath: p2,
+                    timestamp: Date.now(),
+                    command,
+                  })
+                  if (result.hasCollision) {
+                    const collisonMsg =
+                      `[⚠] Collision detected: ${result.editingCreatures.map((c) => c.name).join(', ')} ` +
+                      `are also editing ${p2}. Consider coordinating with them.`
+                    sendEvent(win, terminalId, 'text', collisonMsg)
+                  }
+                }
+              }
+
             } catch (err: unknown) {
               // Non-zero exit — stderr is still useful context for the agent
               const e = err as { stdout?: string; stderr?: string; message?: string }
@@ -338,8 +474,111 @@ async function startAgent(
 
           } else if (block.name === 'send_habitat_message') {
             const { message } = block.input as { message: string }
-            broadcastToHabitat(win, terminalId, memory.name!, message)
+            if (bus) {
+              await bus.broadcast(terminalId, memory.name!, message)
+            }
             toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: 'Broadcast sent.' })
+
+          } else if (block.name === 'send_direct_message') {
+            const { recipientId, message } = block.input as { recipientId: string; message: string }
+            if (bus) {
+              await bus.sendDirect(recipientId, terminalId, memory.name!, message)
+            }
+            toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: `Direct message sent to ${recipientId}.` })
+
+          } else if (block.name === 'get_habitat_messages') {
+            const { limit } = (block.input as { limit?: number }) ?? {}
+            if (bus) {
+              const msgs = await bus.getRecentMessages(terminalId, limit ?? 20)
+              const formatted = msgs.map((m) => `[${m.senderName}]: ${m.content}`).join('\n')
+              toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: formatted || 'No messages.' })
+            } else {
+              toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: 'Habitat bus not available.' })
+            }
+
+          } else if (block.name === 'get_agent_statuses') {
+            if (bus) {
+              const statuses = bus.getAllAgentStatuses()
+              const formatted = statuses.map((s) => `${s.name}: ${s.status}${s.currentIntent ? ` (claiming ${s.currentIntent.target})` : ''}`).join('\n')
+              toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: formatted || 'No agents connected.' })
+            } else {
+              toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: 'Habitat bus not available.' })
+            }
+
+          } else if (block.name === 'claim_file_intent') {
+            const { filePath, intentType } = block.input as { filePath: string; intentType: string }
+            if (bus) {
+              const intent: IntentPayload = {
+                type: intentType as IntentPayload['type'],
+                target: filePath,
+                claimedBy: terminalId,
+                expiresAt: Date.now() + 30_000,
+              }
+              const result = await bus.claimIntent(terminalId, intent)
+              toolResults.push({
+                type: 'tool_result',
+                tool_use_id: block.id,
+                content: result.ok
+                  ? `Intent claimed for ${filePath}.`
+                  : `Collision: ${result.collision?.editingCreatures.map((c) => c.name).join(', ')} are also editing.`
+              })
+            } else {
+              toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: 'Habitat bus not available.' })
+            }
+
+          } else if (block.name === 'release_file_intent') {
+            const { filePath, intentType } = block.input as { filePath: string; intentType: string }
+            if (bus) {
+              await bus.releaseIntent(terminalId, intentType, filePath)
+            }
+            toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: `Intent released for ${filePath}.` })
+
+          } else if (block.name === 'record_file_edit') {
+            const { filePath, command: cmd } = block.input as { filePath: string; command?: string }
+            if (bus) {
+              const result = await bus.recordFileEdit({ creatureId: terminalId, filePath, timestamp: Date.now(), command: cmd })
+              toolResults.push({
+                type: 'tool_result',
+                tool_use_id: block.id,
+                content: result.hasCollision
+                  ? `Collision: ${result.editingCreatures.map((c) => c.name).join(', ')} are editing this file.`
+                  : `File edit recorded for ${filePath}.`
+              })
+            } else {
+              toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: 'Habitat bus not available.' })
+            }
+
+          } else if (block.name === 'check_file_collision') {
+            const { filePath } = block.input as { filePath: string }
+            if (bus) {
+              const result = bus.checkCollision(filePath)
+              toolResults.push({
+                type: 'tool_result',
+                tool_use_id: block.id,
+                content: result.hasCollision
+                  ? `Collision: ${result.editingCreatures.map((c) => c.name).join(', ')} are editing this file.`
+                  : 'No collision.'
+              })
+            } else {
+              toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: 'Habitat bus not available.' })
+            }
+
+          } else if (block.name === 'build_context_handoff') {
+            const { targetCreatureId } = block.input as { targetCreatureId: string }
+            if (bus) {
+              const cm = getContextManager(terminalId)
+              const bundle = await bus.buildHandoffBundle(
+                terminalId,
+                targetCreatureId,
+                (id) => getContextManager(id).getNotes(),
+                async (id, since) => await bus.getMessages(id, { since }),
+                (id) => getContextManager(id).getSummary() ?? ''
+              )
+              const handoffResult = await bus.sendHandoff(targetCreatureId, bundle)
+              toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: `Context handoff sent to ${targetCreatureId}. Message ID: ${handoffResult.id}` })
+            } else {
+              toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: 'Habitat bus not available.' })
+            }
           }
         }
 
@@ -353,6 +592,10 @@ async function startAgent(
   } finally {
     state.running = false
     agents.delete(terminalId)
+
+    if (bus) {
+      bus.setAgentStatus(terminalId, 'listening')
+    }
 
     // Track message activity and fire auto-compact if threshold reached
     const cm = getContextManager(terminalId)
@@ -390,4 +633,10 @@ export function stopAgent(terminalId: string): void {
   // Stop auto-compact when the terminal session closes
   autoCompactStarted.delete(terminalId)
   getContextManager(terminalId).stopAutoCompact()
+
+  // Unregister from habitat bus
+  const bus = getBus()
+  if (bus) {
+    bus.unregisterAgent(terminalId).catch(() => {})
+  }
 }

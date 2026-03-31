@@ -73,6 +73,7 @@ async function buildShellConfigs(
             model: mem.model,
             mcpServers: mem.mcpServers,
             createdAt: mem.createdAt,
+            spriteId: mem.spriteId ?? shell.creature?.spriteId ?? undefined,
           }
         }
         return base
@@ -99,6 +100,7 @@ async function buildShellConfigs(
             model: mem.model,
             mcpServers: mem.mcpServers,
             createdAt: mem.createdAt,
+            spriteId: mem.spriteId ?? t.shellConfig?.creature?.spriteId ?? undefined,
           }
         }
         return base
@@ -133,6 +135,7 @@ async function buildShellConfigs(
           model: mem.model,
           mcpServers: mem.mcpServers,
           createdAt: mem.createdAt,
+          spriteId: mem.spriteId ?? t.shellConfig?.creature?.spriteId ?? undefined,
         }
       }
       return base

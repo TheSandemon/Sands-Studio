@@ -40,6 +40,8 @@ const habitatAPI = {
   import: () => ipcRenderer.invoke('habitat:import'),
   getCurrentHabitatId: () => ipcRenderer.invoke('habitat:get-current-id'),
   getCurrentHabitatName: () => ipcRenderer.invoke('habitat:get-current-name'),
+  clear: () => ipcRenderer.invoke('habitat:clear'),
+  trackHabitats: (habitatIds: string[]) => ipcRenderer.invoke('habitat:track', habitatIds),
 }
 
 const agentAPI = {
@@ -56,7 +58,11 @@ const agentAPI = {
     ) => cb(terminalId, type, payload)
     ipcRenderer.on('agent:event', h)
     return () => ipcRenderer.off('agent:event', h)
-  }
+  },
+  save: (agent: object) => ipcRenderer.invoke('agent:save', agent),
+  list: () => ipcRenderer.invoke('agent:list'),
+  load: (id: string, habitatId: string, shellIndex: number) => ipcRenderer.invoke('agent:load', id, habitatId, shellIndex),
+  delete: (id: string) => ipcRenderer.invoke('agent:delete', id)
 }
 
 const creatureAPI = {
@@ -185,3 +191,62 @@ contextBridge.exposeInMainWorld('contextAPI', contextAPI)
 contextBridge.exposeInMainWorld('hookAPI', hookAPI)
 contextBridge.exposeInMainWorld('pluginAPI', pluginAPI)
 contextBridge.exposeInMainWorld('skillAPI', skillAPI)
+
+// habitatCommsAPI — inter-agent communication bus
+const habitatCommsAPI = {
+  registerAgent: (creatureId: string, name: string) =>
+    ipcRenderer.invoke('comms:register-agent', creatureId, name),
+  unregisterAgent: (creatureId: string) =>
+    ipcRenderer.invoke('comms:unregister-agent', creatureId),
+  send: (input: unknown) =>
+    ipcRenderer.invoke('comms:send', input),
+  sendDirect: (recipientId: string, senderId: string, senderName: string, content: string) =>
+    ipcRenderer.invoke('comms:send-direct', recipientId, senderId, senderName, content),
+  broadcast: (senderId: string, senderName: string, content: string) =>
+    ipcRenderer.invoke('comms:broadcast', senderId, senderName, content),
+  reply: (threadId: string, senderId: string, senderName: string, content: string) =>
+    ipcRenderer.invoke('comms:reply', threadId, senderId, senderName, content),
+  getMessages: (creatureId: string, opts?: unknown) =>
+    ipcRenderer.invoke('comms:get-messages', creatureId, opts),
+  getThread: (threadId: string) =>
+    ipcRenderer.invoke('comms:get-thread', threadId),
+  getRecent: (creatureId: string, limit?: number) =>
+    ipcRenderer.invoke('comms:get-recent', creatureId, limit),
+  getStatus: () =>
+    ipcRenderer.invoke('comms:get-status'),
+  setStatus: (creatureId: string, status: string) =>
+    ipcRenderer.invoke('comms:set-status', creatureId, status),
+  claimIntent: (creatureId: string, intent: unknown) =>
+    ipcRenderer.invoke('comms:claim-intent', creatureId, intent),
+  releaseIntent: (creatureId: string, intentType: string, target: string) =>
+    ipcRenderer.invoke('comms:release-intent', creatureId, intentType, target),
+  checkIntents: (target: string) =>
+    ipcRenderer.invoke('comms:check-intents', target),
+  recordFileEdit: (event: unknown) =>
+    ipcRenderer.invoke('comms:record-file-edit', event),
+  checkCollision: (filePath: string, windowMs?: number) =>
+    ipcRenderer.invoke('comms:check-collision', filePath, windowMs),
+  buildHandoff: (sourceId: string, targetId: string) =>
+    ipcRenderer.invoke('comms:build-handoff', sourceId, targetId),
+  sendHandoff: (targetId: string, bundle: unknown) =>
+    ipcRenderer.invoke('comms:send-handoff', targetId, bundle),
+
+  // Event listeners
+  onMessage: (cb: (msg: unknown) => void) => {
+    const h = (_: Electron.IpcRendererEvent, msg: unknown) => cb(msg)
+    ipcRenderer.on('comms:message', h)
+    return () => ipcRenderer.off('comms:message', h)
+  },
+  onStatusChange: (cb: (info: unknown) => void) => {
+    const h = (_: Electron.IpcRendererEvent, info: unknown) => cb(info)
+    ipcRenderer.on('comms:status-change', h)
+    return () => ipcRenderer.off('comms:status-change', h)
+  },
+  onCollision: (cb: (result: unknown) => void) => {
+    const h = (_: Electron.IpcRendererEvent, result: unknown) => cb(result)
+    ipcRenderer.on('comms:collision', h)
+    return () => ipcRenderer.off('comms:collision', h)
+  },
+}
+
+contextBridge.exposeInMainWorld('habitatCommsAPI', habitatCommsAPI)

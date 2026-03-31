@@ -1,4 +1,2391 @@
 {
-  "$schema": "./manifest.schema.json",
-  "creatures": []
+  "creatures": [
+    {
+      "id": "bat",
+      "displayName": "Bat",
+      "scale": 2,
+      "imageUrl": "assets/sprites/bat_spritesheet.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "spritesheetData": {
+        "frames": {
+          "bat_idle_0": {
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "bat_idle_1": {
+            "frame": {
+              "x": 64,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "bat_idle_2": {
+            "frame": {
+              "x": 128,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "bat_idle_3": {
+            "frame": {
+              "x": 192,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "bat_walk_0": {
+            "frame": {
+              "x": 256,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "bat_walk_1": {
+            "frame": {
+              "x": 320,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "bat_walk_2": {
+            "frame": {
+              "x": 384,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "bat_walk_3": {
+            "frame": {
+              "x": 448,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "bat_walk_4": {
+            "frame": {
+              "x": 512,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "bat_walk_5": {
+            "frame": {
+              "x": 576,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "bat_attack_0": {
+            "frame": {
+              "x": 640,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "bat_attack_1": {
+            "frame": {
+              "x": 704,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "bat_attack_2": {
+            "frame": {
+              "x": 768,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "bat_attack_3": {
+            "frame": {
+              "x": 832,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          }
+        },
+        "meta": {
+          "app": "pixel-sprite-generator",
+          "version": "1.0",
+          "image": "bat_spritesheet.png",
+          "size": {
+            "w": 896,
+            "h": 64
+          },
+          "framerate": 8
+        },
+        "animations": {
+          "idle": [
+            "bat_idle_0",
+            "bat_idle_1",
+            "bat_idle_2",
+            "bat_idle_3"
+          ],
+          "walk": [
+            "bat_walk_0",
+            "bat_walk_1",
+            "bat_walk_2",
+            "bat_walk_3",
+            "bat_walk_4",
+            "bat_walk_5"
+          ],
+          "attack": [
+            "bat_attack_0",
+            "bat_attack_1",
+            "bat_attack_2",
+            "bat_attack_3"
+          ]
+        }
+      },
+      "fps": {
+        "idle": 4,
+        "walk": 8,
+        "attack": 8
+      }
+    },
+    {
+      "id": "crab",
+      "displayName": "Crab",
+      "scale": 3,
+      "imageUrl": "assets/sprites/crab_spritesheet.png",
+      "frameWidth": 32,
+      "frameHeight": 32,
+      "spritesheetData": {
+        "frames": {
+          "crab_idle_0": {
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 32,
+              "h": 32
+            },
+            "sourceSize": {
+              "w": 32,
+              "h": 32
+            }
+          },
+          "crab_idle_1": {
+            "frame": {
+              "x": 32,
+              "y": 0,
+              "w": 32,
+              "h": 32
+            },
+            "sourceSize": {
+              "w": 32,
+              "h": 32
+            }
+          },
+          "crab_idle_2": {
+            "frame": {
+              "x": 64,
+              "y": 0,
+              "w": 32,
+              "h": 32
+            },
+            "sourceSize": {
+              "w": 32,
+              "h": 32
+            }
+          },
+          "crab_idle_3": {
+            "frame": {
+              "x": 96,
+              "y": 0,
+              "w": 32,
+              "h": 32
+            },
+            "sourceSize": {
+              "w": 32,
+              "h": 32
+            }
+          },
+          "crab_walk_0": {
+            "frame": {
+              "x": 128,
+              "y": 0,
+              "w": 32,
+              "h": 32
+            },
+            "sourceSize": {
+              "w": 32,
+              "h": 32
+            }
+          },
+          "crab_walk_1": {
+            "frame": {
+              "x": 160,
+              "y": 0,
+              "w": 32,
+              "h": 32
+            },
+            "sourceSize": {
+              "w": 32,
+              "h": 32
+            }
+          },
+          "crab_walk_2": {
+            "frame": {
+              "x": 192,
+              "y": 0,
+              "w": 32,
+              "h": 32
+            },
+            "sourceSize": {
+              "w": 32,
+              "h": 32
+            }
+          },
+          "crab_walk_3": {
+            "frame": {
+              "x": 224,
+              "y": 0,
+              "w": 32,
+              "h": 32
+            },
+            "sourceSize": {
+              "w": 32,
+              "h": 32
+            }
+          },
+          "crab_walk_4": {
+            "frame": {
+              "x": 256,
+              "y": 0,
+              "w": 32,
+              "h": 32
+            },
+            "sourceSize": {
+              "w": 32,
+              "h": 32
+            }
+          },
+          "crab_walk_5": {
+            "frame": {
+              "x": 288,
+              "y": 0,
+              "w": 32,
+              "h": 32
+            },
+            "sourceSize": {
+              "w": 32,
+              "h": 32
+            }
+          },
+          "crab_attack_0": {
+            "frame": {
+              "x": 320,
+              "y": 0,
+              "w": 32,
+              "h": 32
+            },
+            "sourceSize": {
+              "w": 32,
+              "h": 32
+            }
+          },
+          "crab_attack_1": {
+            "frame": {
+              "x": 352,
+              "y": 0,
+              "w": 32,
+              "h": 32
+            },
+            "sourceSize": {
+              "w": 32,
+              "h": 32
+            }
+          },
+          "crab_attack_2": {
+            "frame": {
+              "x": 384,
+              "y": 0,
+              "w": 32,
+              "h": 32
+            },
+            "sourceSize": {
+              "w": 32,
+              "h": 32
+            }
+          },
+          "crab_attack_3": {
+            "frame": {
+              "x": 416,
+              "y": 0,
+              "w": 32,
+              "h": 32
+            },
+            "sourceSize": {
+              "w": 32,
+              "h": 32
+            }
+          }
+        },
+        "meta": {
+          "app": "pixel-sprite-generator",
+          "version": "1.0",
+          "image": "crab_spritesheet.png",
+          "size": {
+            "w": 448,
+            "h": 32
+          },
+          "framerate": 8
+        },
+        "animations": {
+          "idle": [
+            "crab_idle_0",
+            "crab_idle_1",
+            "crab_idle_2",
+            "crab_idle_3"
+          ],
+          "walk": [
+            "crab_walk_0",
+            "crab_walk_1",
+            "crab_walk_2",
+            "crab_walk_3",
+            "crab_walk_4",
+            "crab_walk_5"
+          ],
+          "attack": [
+            "crab_attack_0",
+            "crab_attack_1",
+            "crab_attack_2",
+            "crab_attack_3"
+          ]
+        }
+      },
+      "fps": {
+        "idle": 4,
+        "walk": 8,
+        "attack": 8
+      }
+    },
+    {
+      "id": "fish",
+      "displayName": "Fish",
+      "scale": 2,
+      "imageUrl": "assets/sprites/fish_spritesheet.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "spritesheetData": {
+        "frames": {
+          "fish_idle_0": {
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "fish_idle_1": {
+            "frame": {
+              "x": 64,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "fish_idle_2": {
+            "frame": {
+              "x": 128,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "fish_idle_3": {
+            "frame": {
+              "x": 192,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "fish_walk_0": {
+            "frame": {
+              "x": 256,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "fish_walk_1": {
+            "frame": {
+              "x": 320,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "fish_walk_2": {
+            "frame": {
+              "x": 384,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "fish_walk_3": {
+            "frame": {
+              "x": 448,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "fish_walk_4": {
+            "frame": {
+              "x": 512,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "fish_walk_5": {
+            "frame": {
+              "x": 576,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "fish_attack_0": {
+            "frame": {
+              "x": 640,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "fish_attack_1": {
+            "frame": {
+              "x": 704,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "fish_attack_2": {
+            "frame": {
+              "x": 768,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "fish_attack_3": {
+            "frame": {
+              "x": 832,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          }
+        },
+        "meta": {
+          "app": "pixel-sprite-generator",
+          "version": "1.0",
+          "image": "fish_spritesheet.png",
+          "size": {
+            "w": 896,
+            "h": 64
+          },
+          "framerate": 8
+        },
+        "animations": {
+          "idle": [
+            "fish_idle_0",
+            "fish_idle_1",
+            "fish_idle_2",
+            "fish_idle_3"
+          ],
+          "walk": [
+            "fish_walk_0",
+            "fish_walk_1",
+            "fish_walk_2",
+            "fish_walk_3",
+            "fish_walk_4",
+            "fish_walk_5"
+          ],
+          "attack": [
+            "fish_attack_0",
+            "fish_attack_1",
+            "fish_attack_2",
+            "fish_attack_3"
+          ]
+        }
+      },
+      "fps": {
+        "idle": 4,
+        "walk": 8,
+        "attack": 8
+      }
+    },
+    {
+      "id": "frog",
+      "displayName": "Frog",
+      "scale": 2,
+      "imageUrl": "assets/sprites/frog_spritesheet.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "spritesheetData": {
+        "frames": {
+          "frog_idle_0": {
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "frog_idle_1": {
+            "frame": {
+              "x": 64,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "frog_idle_2": {
+            "frame": {
+              "x": 128,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "frog_idle_3": {
+            "frame": {
+              "x": 192,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "frog_walk_0": {
+            "frame": {
+              "x": 256,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "frog_walk_1": {
+            "frame": {
+              "x": 320,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "frog_walk_2": {
+            "frame": {
+              "x": 384,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "frog_walk_3": {
+            "frame": {
+              "x": 448,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "frog_walk_4": {
+            "frame": {
+              "x": 512,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "frog_walk_5": {
+            "frame": {
+              "x": 576,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "frog_attack_0": {
+            "frame": {
+              "x": 640,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "frog_attack_1": {
+            "frame": {
+              "x": 704,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "frog_attack_2": {
+            "frame": {
+              "x": 768,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "frog_attack_3": {
+            "frame": {
+              "x": 832,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          }
+        },
+        "meta": {
+          "app": "pixel-sprite-generator",
+          "version": "1.0",
+          "image": "frog_spritesheet.png",
+          "size": {
+            "w": 896,
+            "h": 64
+          },
+          "framerate": 8
+        },
+        "animations": {
+          "idle": [
+            "frog_idle_0",
+            "frog_idle_1",
+            "frog_idle_2",
+            "frog_idle_3"
+          ],
+          "walk": [
+            "frog_walk_0",
+            "frog_walk_1",
+            "frog_walk_2",
+            "frog_walk_3",
+            "frog_walk_4",
+            "frog_walk_5"
+          ],
+          "attack": [
+            "frog_attack_0",
+            "frog_attack_1",
+            "frog_attack_2",
+            "frog_attack_3"
+          ]
+        }
+      },
+      "fps": {
+        "idle": 4,
+        "walk": 8,
+        "attack": 8
+      }
+    },
+    {
+      "id": "ghost",
+      "displayName": "Ghost",
+      "scale": 2,
+      "imageUrl": "assets/sprites/ghost_spritesheet.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "spritesheetData": {
+        "frames": {
+          "ghost_idle_0": {
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "ghost_idle_1": {
+            "frame": {
+              "x": 64,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "ghost_idle_2": {
+            "frame": {
+              "x": 128,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "ghost_idle_3": {
+            "frame": {
+              "x": 192,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "ghost_walk_0": {
+            "frame": {
+              "x": 256,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "ghost_walk_1": {
+            "frame": {
+              "x": 320,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "ghost_walk_2": {
+            "frame": {
+              "x": 384,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "ghost_walk_3": {
+            "frame": {
+              "x": 448,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "ghost_walk_4": {
+            "frame": {
+              "x": 512,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "ghost_walk_5": {
+            "frame": {
+              "x": 576,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "ghost_attack_0": {
+            "frame": {
+              "x": 640,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "ghost_attack_1": {
+            "frame": {
+              "x": 704,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "ghost_attack_2": {
+            "frame": {
+              "x": 768,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "ghost_attack_3": {
+            "frame": {
+              "x": 832,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          }
+        },
+        "meta": {
+          "app": "pixel-sprite-generator",
+          "version": "1.0",
+          "image": "ghost_spritesheet.png",
+          "size": {
+            "w": 896,
+            "h": 64
+          },
+          "framerate": 8
+        },
+        "animations": {
+          "idle": [
+            "ghost_idle_0",
+            "ghost_idle_1",
+            "ghost_idle_2",
+            "ghost_idle_3"
+          ],
+          "walk": [
+            "ghost_walk_0",
+            "ghost_walk_1",
+            "ghost_walk_2",
+            "ghost_walk_3",
+            "ghost_walk_4",
+            "ghost_walk_5"
+          ],
+          "attack": [
+            "ghost_attack_0",
+            "ghost_attack_1",
+            "ghost_attack_2",
+            "ghost_attack_3"
+          ]
+        }
+      },
+      "fps": {
+        "idle": 4,
+        "walk": 8,
+        "attack": 8
+      }
+    },
+    {
+      "id": "goblin",
+      "displayName": "Goblin",
+      "scale": 2,
+      "imageUrl": "assets/sprites/goblin_spritesheet.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "spritesheetData": {
+        "frames": {
+          "goblin_idle_0": {
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "goblin_idle_1": {
+            "frame": {
+              "x": 64,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "goblin_idle_2": {
+            "frame": {
+              "x": 128,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "goblin_idle_3": {
+            "frame": {
+              "x": 192,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "goblin_walk_0": {
+            "frame": {
+              "x": 256,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "goblin_walk_1": {
+            "frame": {
+              "x": 320,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "goblin_walk_2": {
+            "frame": {
+              "x": 384,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "goblin_walk_3": {
+            "frame": {
+              "x": 448,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "goblin_walk_4": {
+            "frame": {
+              "x": 512,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "goblin_walk_5": {
+            "frame": {
+              "x": 576,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "goblin_attack_0": {
+            "frame": {
+              "x": 640,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "goblin_attack_1": {
+            "frame": {
+              "x": 704,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "goblin_attack_2": {
+            "frame": {
+              "x": 768,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "goblin_attack_3": {
+            "frame": {
+              "x": 832,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          }
+        },
+        "meta": {
+          "app": "pixel-sprite-generator",
+          "version": "1.0",
+          "image": "goblin_spritesheet.png",
+          "size": {
+            "w": 896,
+            "h": 64
+          },
+          "framerate": 8
+        },
+        "animations": {
+          "idle": [
+            "goblin_idle_0",
+            "goblin_idle_1",
+            "goblin_idle_2",
+            "goblin_idle_3"
+          ],
+          "walk": [
+            "goblin_walk_0",
+            "goblin_walk_1",
+            "goblin_walk_2",
+            "goblin_walk_3",
+            "goblin_walk_4",
+            "goblin_walk_5"
+          ],
+          "attack": [
+            "goblin_attack_0",
+            "goblin_attack_1",
+            "goblin_attack_2",
+            "goblin_attack_3"
+          ]
+        }
+      },
+      "fps": {
+        "idle": 4,
+        "walk": 8,
+        "attack": 8
+      }
+    },
+    {
+      "id": "heart",
+      "displayName": "Heart",
+      "scale": 2,
+      "imageUrl": "assets/sprites/heart_spritesheet.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "spritesheetData": {
+        "frames": {
+          "heart_idle_0": {
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "heart_idle_1": {
+            "frame": {
+              "x": 64,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "heart_idle_2": {
+            "frame": {
+              "x": 128,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "heart_idle_3": {
+            "frame": {
+              "x": 192,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "heart_walk_0": {
+            "frame": {
+              "x": 256,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "heart_walk_1": {
+            "frame": {
+              "x": 320,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "heart_walk_2": {
+            "frame": {
+              "x": 384,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "heart_walk_3": {
+            "frame": {
+              "x": 448,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "heart_walk_4": {
+            "frame": {
+              "x": 512,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "heart_walk_5": {
+            "frame": {
+              "x": 576,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "heart_attack_0": {
+            "frame": {
+              "x": 640,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "heart_attack_1": {
+            "frame": {
+              "x": 704,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "heart_attack_2": {
+            "frame": {
+              "x": 768,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "heart_attack_3": {
+            "frame": {
+              "x": 832,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          }
+        },
+        "meta": {
+          "app": "pixel-sprite-generator",
+          "version": "1.0",
+          "image": "heart_spritesheet.png",
+          "size": {
+            "w": 896,
+            "h": 64
+          },
+          "framerate": 8
+        },
+        "animations": {
+          "idle": [
+            "heart_idle_0",
+            "heart_idle_1",
+            "heart_idle_2",
+            "heart_idle_3"
+          ],
+          "walk": [
+            "heart_walk_0",
+            "heart_walk_1",
+            "heart_walk_2",
+            "heart_walk_3",
+            "heart_walk_4",
+            "heart_walk_5"
+          ],
+          "attack": [
+            "heart_attack_0",
+            "heart_attack_1",
+            "heart_attack_2",
+            "heart_attack_3"
+          ]
+        }
+      },
+      "fps": {
+        "idle": 4,
+        "walk": 8,
+        "attack": 8
+      }
+    },
+    {
+      "id": "mushroom",
+      "displayName": "Mushroom",
+      "scale": 2,
+      "imageUrl": "assets/sprites/mushroom_spritesheet.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "spritesheetData": {
+        "frames": {
+          "mushroom_idle_0": {
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "mushroom_idle_1": {
+            "frame": {
+              "x": 64,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "mushroom_idle_2": {
+            "frame": {
+              "x": 128,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "mushroom_idle_3": {
+            "frame": {
+              "x": 192,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "mushroom_walk_0": {
+            "frame": {
+              "x": 256,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "mushroom_walk_1": {
+            "frame": {
+              "x": 320,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "mushroom_walk_2": {
+            "frame": {
+              "x": 384,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "mushroom_walk_3": {
+            "frame": {
+              "x": 448,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "mushroom_walk_4": {
+            "frame": {
+              "x": 512,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "mushroom_walk_5": {
+            "frame": {
+              "x": 576,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "mushroom_attack_0": {
+            "frame": {
+              "x": 640,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "mushroom_attack_1": {
+            "frame": {
+              "x": 704,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "mushroom_attack_2": {
+            "frame": {
+              "x": 768,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "mushroom_attack_3": {
+            "frame": {
+              "x": 832,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          }
+        },
+        "meta": {
+          "app": "pixel-sprite-generator",
+          "version": "1.0",
+          "image": "mushroom_spritesheet.png",
+          "size": {
+            "w": 896,
+            "h": 64
+          },
+          "framerate": 8
+        },
+        "animations": {
+          "idle": [
+            "mushroom_idle_0",
+            "mushroom_idle_1",
+            "mushroom_idle_2",
+            "mushroom_idle_3"
+          ],
+          "walk": [
+            "mushroom_walk_0",
+            "mushroom_walk_1",
+            "mushroom_walk_2",
+            "mushroom_walk_3",
+            "mushroom_walk_4",
+            "mushroom_walk_5"
+          ],
+          "attack": [
+            "mushroom_attack_0",
+            "mushroom_attack_1",
+            "mushroom_attack_2",
+            "mushroom_attack_3"
+          ]
+        }
+      },
+      "fps": {
+        "idle": 4,
+        "walk": 8,
+        "attack": 8
+      }
+    },
+    {
+      "id": "skeleton",
+      "displayName": "Skeleton",
+      "scale": 2,
+      "imageUrl": "assets/sprites/skeleton_spritesheet.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "spritesheetData": {
+        "frames": {
+          "skeleton_idle_0": {
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "skeleton_idle_1": {
+            "frame": {
+              "x": 64,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "skeleton_idle_2": {
+            "frame": {
+              "x": 128,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "skeleton_idle_3": {
+            "frame": {
+              "x": 192,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "skeleton_walk_0": {
+            "frame": {
+              "x": 256,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "skeleton_walk_1": {
+            "frame": {
+              "x": 320,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "skeleton_walk_2": {
+            "frame": {
+              "x": 384,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "skeleton_walk_3": {
+            "frame": {
+              "x": 448,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "skeleton_walk_4": {
+            "frame": {
+              "x": 512,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "skeleton_walk_5": {
+            "frame": {
+              "x": 576,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "skeleton_attack_0": {
+            "frame": {
+              "x": 640,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "skeleton_attack_1": {
+            "frame": {
+              "x": 704,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "skeleton_attack_2": {
+            "frame": {
+              "x": 768,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "skeleton_attack_3": {
+            "frame": {
+              "x": 832,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          }
+        },
+        "meta": {
+          "app": "pixel-sprite-generator",
+          "version": "1.0",
+          "image": "skeleton_spritesheet.png",
+          "size": {
+            "w": 896,
+            "h": 64
+          },
+          "framerate": 8
+        },
+        "animations": {
+          "idle": [
+            "skeleton_idle_0",
+            "skeleton_idle_1",
+            "skeleton_idle_2",
+            "skeleton_idle_3"
+          ],
+          "walk": [
+            "skeleton_walk_0",
+            "skeleton_walk_1",
+            "skeleton_walk_2",
+            "skeleton_walk_3",
+            "skeleton_walk_4",
+            "skeleton_walk_5"
+          ],
+          "attack": [
+            "skeleton_attack_0",
+            "skeleton_attack_1",
+            "skeleton_attack_2",
+            "skeleton_attack_3"
+          ]
+        }
+      },
+      "fps": {
+        "idle": 4,
+        "walk": 8,
+        "attack": 8
+      }
+    },
+    {
+      "id": "slime",
+      "displayName": "Slime",
+      "scale": 2,
+      "imageUrl": "assets/sprites/slime_spritesheet.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "spritesheetData": {
+        "frames": {
+          "slime_idle_0": {
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "slime_idle_1": {
+            "frame": {
+              "x": 64,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "slime_idle_2": {
+            "frame": {
+              "x": 128,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "slime_idle_3": {
+            "frame": {
+              "x": 192,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "slime_walk_0": {
+            "frame": {
+              "x": 256,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "slime_walk_1": {
+            "frame": {
+              "x": 320,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "slime_walk_2": {
+            "frame": {
+              "x": 384,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "slime_walk_3": {
+            "frame": {
+              "x": 448,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "slime_walk_4": {
+            "frame": {
+              "x": 512,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "slime_walk_5": {
+            "frame": {
+              "x": 576,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "slime_attack_0": {
+            "frame": {
+              "x": 640,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "slime_attack_1": {
+            "frame": {
+              "x": 704,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "slime_attack_2": {
+            "frame": {
+              "x": 768,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "slime_attack_3": {
+            "frame": {
+              "x": 832,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          }
+        },
+        "meta": {
+          "app": "pixel-sprite-generator",
+          "version": "1.0",
+          "image": "slime_spritesheet.png",
+          "size": {
+            "w": 896,
+            "h": 64
+          },
+          "framerate": 8
+        },
+        "animations": {
+          "idle": [
+            "slime_idle_0",
+            "slime_idle_1",
+            "slime_idle_2",
+            "slime_idle_3"
+          ],
+          "walk": [
+            "slime_walk_0",
+            "slime_walk_1",
+            "slime_walk_2",
+            "slime_walk_3",
+            "slime_walk_4",
+            "slime_walk_5"
+          ],
+          "attack": [
+            "slime_attack_0",
+            "slime_attack_1",
+            "slime_attack_2",
+            "slime_attack_3"
+          ]
+        }
+      },
+      "fps": {
+        "idle": 4,
+        "walk": 8,
+        "attack": 8
+      }
+    },
+    {
+      "id": "spider",
+      "displayName": "Spider",
+      "scale": 2,
+      "imageUrl": "assets/sprites/spider_spritesheet.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "spritesheetData": {
+        "frames": {
+          "spider_idle_0": {
+            "frame": {
+              "x": 0,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "spider_idle_1": {
+            "frame": {
+              "x": 64,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "spider_idle_2": {
+            "frame": {
+              "x": 128,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "spider_idle_3": {
+            "frame": {
+              "x": 192,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "spider_walk_0": {
+            "frame": {
+              "x": 256,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "spider_walk_1": {
+            "frame": {
+              "x": 320,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "spider_walk_2": {
+            "frame": {
+              "x": 384,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "spider_walk_3": {
+            "frame": {
+              "x": 448,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "spider_walk_4": {
+            "frame": {
+              "x": 512,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "spider_walk_5": {
+            "frame": {
+              "x": 576,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "spider_attack_0": {
+            "frame": {
+              "x": 640,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "spider_attack_1": {
+            "frame": {
+              "x": 704,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "spider_attack_2": {
+            "frame": {
+              "x": 768,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          },
+          "spider_attack_3": {
+            "frame": {
+              "x": 832,
+              "y": 0,
+              "w": 64,
+              "h": 64
+            },
+            "sourceSize": {
+              "w": 64,
+              "h": 64
+            }
+          }
+        },
+        "meta": {
+          "app": "pixel-sprite-generator",
+          "version": "1.0",
+          "image": "spider_spritesheet.png",
+          "size": {
+            "w": 896,
+            "h": 64
+          },
+          "framerate": 8
+        },
+        "animations": {
+          "idle": [
+            "spider_idle_0",
+            "spider_idle_1",
+            "spider_idle_2",
+            "spider_idle_3"
+          ],
+          "walk": [
+            "spider_walk_0",
+            "spider_walk_1",
+            "spider_walk_2",
+            "spider_walk_3",
+            "spider_walk_4",
+            "spider_walk_5"
+          ],
+          "attack": [
+            "spider_attack_0",
+            "spider_attack_1",
+            "spider_attack_2",
+            "spider_attack_3"
+          ]
+        }
+      },
+      "fps": {
+        "idle": 4,
+        "walk": 8,
+        "attack": 8
+      }
+    }
+  ]
 }

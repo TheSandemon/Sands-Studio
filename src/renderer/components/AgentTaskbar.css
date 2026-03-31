@@ -1,0 +1,68 @@
+.agent-taskbar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--bg, #09091a);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.agent-taskbar::-webkit-scrollbar {
+  display: none;
+}
+
+.agent-taskbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: #888;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.agent-taskbar-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #ccc;
+}
+
+.agent-taskbar-btn.active {
+  background: rgba(91, 144, 240, 0.12);
+  border-color: rgba(91, 144, 240, 0.35);
+  color: #c8cce4;
+}
+
+.agent-taskbar-btn.active:hover {
+  background: rgba(91, 144, 240, 0.18);
+}
+
+.agent-taskbar-icon {
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.agent-taskbar-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.agent-taskbar-name {
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

@@ -11,4 +11,5 @@
   height: 100% !important;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
+  pointer-events: auto;
 }

@@ -188,42 +188,42 @@ const TerminalPane = forwardRef<TerminalPaneRef, Props>(({ session, onOpenShellS
       // PTY already created by main process (e.g. habitat:apply) — just wire up listeners
     } else if (sc) {
       rendererCreatedPty.current = true
-      window.terminalAPI.createWithConfig(session.id, sc)
+      window.terminalAPI?.createWithConfig(session.id, sc)
     } else {
       rendererCreatedPty.current = true
-      window.terminalAPI.create(session.id)
+      window.terminalAPI?.create(session.id)
     }
 
-    const offData = window.terminalAPI.onData((id, data) => {
+    const offData = window.terminalAPI?.onData((id, data) => {
       if (id !== session.id) return
       term.write(data)
       recordActivity(session.id)
     })
 
-    const offExit = window.terminalAPI.onExit((id, code) => {
+    const offExit = window.terminalAPI?.onExit((id, code) => {
       if (id !== session.id) return
       term.writeln(`\r\n\x1b[90m[process exited with code ${code}]\x1b[0m`)
       setState(session.id, code === 0 ? 'idle' : 'error')
     })
 
     term.onData((data) => {
-      window.terminalAPI.write(session.id, data)
+      window.terminalAPI?.write(session.id, data)
     })
 
     const ro = new ResizeObserver(() => {
       fitAddon.fit()
-      window.terminalAPI.resize(session.id, term.cols, term.rows)
+      window.terminalAPI?.resize(session.id, term.cols, term.rows)
     })
     ro.observe(containerRef.current)
 
     return () => {
-      offData()
-      offExit()
+      offData?.()
+      offExit?.()
       ro.disconnect()
       term.dispose()
       // Only kill PTY if THIS renderer instance created it (not pre-created by main process)
       if (rendererCreatedPty.current) {
-        window.terminalAPI.kill(session.id)
+        window.terminalAPI?.kill(session.id)
         rendererCreatedPty.current = false
       }
     }
@@ -269,7 +269,7 @@ const TerminalPane = forwardRef<TerminalPaneRef, Props>(({ session, onOpenShellS
   const handleClose = useCallback(() => {
     const name = creatureName ?? session.name
     if (confirmBeforeClose && !confirm(`Close ${name}?`)) return
-    window.terminalAPI.kill(session.id)
+    window.terminalAPI?.kill(session.id)
     removeTerminal(session.id)
   }, [session.id, session.name, creatureName, confirmBeforeClose, removeTerminal])
 
@@ -279,6 +279,7 @@ const TerminalPane = forwardRef<TerminalPaneRef, Props>(({ session, onOpenShellS
   const paneStyle: React.CSSProperties = {}
   if (paneWidth  !== undefined) { paneStyle.width = paneWidth;   paneStyle.flex = 'none' }
   if (paneHeight !== undefined) { paneStyle.height = paneHeight; paneStyle.alignSelf = 'flex-start' }
+  if (session.visible === false) { paneStyle.display = 'none' }
 
   return (
     <div className="terminal-pane" ref={paneRef} style={paneStyle}>

@@ -11,8 +11,10 @@ import * as PIXI from 'pixi.js'
 import { useTerminalStore, type TerminalSession, type TerminalState } from '../store/useTerminalStore'
 import { useSettingsStore } from '../store/useSettingsStore'
 import { Creature, type Territory } from '../creatures/Creature'
+import { ComputerIcon } from '../creatures/ComputerIcon'
 import { BUILTIN_CREATURES, EGG_CREATURE } from '../creatures/builtinCreatures'
-import { buildCreatureTextures, type TextureMap, type FpsMap } from '../creatures/spriteSystem'
+import { buildCreatureTextures, loadManifestCreature, type TextureMap, type FpsMap } from '../creatures/spriteSystem'
+import manifest from '../../../public/assets/sprites/manifest.json'
 import './Habitat.css'
 
 // ---------------------------------------------------------------------------
@@ -54,22 +56,36 @@ function syncCreatures(
   app: PIXI.Application,
   terminals: TerminalSession[],
   creaturesRef: React.MutableRefObject<Map<string, Creature>>,
+  iconsRef: React.MutableRefObject<Map<string, ComputerIcon>>,
   bakedRef: React.MutableRefObject<Map<string, BakedCreature>>,
   creatureTypeRef: React.MutableRefObject<Map<string, string>>,
-  territoryRef: React.MutableRefObject<Map<string, Territory>>
+  territoryRef: React.MutableRefObject<Map<string, Territory>>,
+  spriteTextureMapsRef: React.MutableRefObject<Record<string, Record<string, PIXI.Texture[]>>>,
+  spriteFpsMapsRef: React.MutableRefObject<Record<string, Record<string, number>>>
 ): void {
   if (!app.stage) return
 
   const terminalIds = new Set(terminals.map((t) => t.id))
+  
+  // Use .current to access the map
+  const territoryMap = territoryRef.current
 
-  // Remove creatures for deleted terminals
+  // Remove creatures/icons for deleted terminals
   for (const [id, creature] of creaturesRef.current) {
     if (!terminalIds.has(id)) {
       app.stage.removeChild(creature.container)
       creature.destroy()
       creaturesRef.current.delete(id)
+      
+      const icon = iconsRef.current.get(id)
+      if (icon) {
+        app.stage.removeChild(icon.container)
+        icon.destroy()
+        iconsRef.current.delete(id)
+      }
+      
       creatureTypeRef.current.delete(id)
-      territoryRef.current.delete(id)
+      territoryMap.delete(id)
     }
   }
 
@@ -87,20 +103,79 @@ function syncCreatures(
       width: sectionW - 8,
       height: H - 8
     }
-    territoryRef.current.set(t.id, territory)
+    territoryMap.set(t.id, territory)
 
-    if (!creaturesRef.current.has(t.id)) {
-      // New terminals spawn as eggs; hatched ones use blob
-      const defId = creatureTypeRef.current.get(t.id) ?? (t.hatched ? 'blob' : 'egg')
-      creatureTypeRef.current.set(t.id, defId)
-      const baked = bakedRef.current.get(defId)
-      if (!baked) return
+    // Ensure icon exists/updated
+    let icon = iconsRef.current.get(t.id)
+    if (!icon) {
+      icon = new ComputerIcon(t.id, territory)
+      iconsRef.current.set(t.id, icon)
+      app.stage.addChild(icon.container)
+    } else {
+      icon.setPosition(territory)
+    }
+    icon.setState(t.state as TerminalState)
+    icon.setActive(t.visible !== false)
 
-      const creature = new Creature(t.id, baked.textureMap, baked.fpsMap, territory)
+    const spriteId = t.shellConfig?.creature?.spriteId
+    let currentDefId = creatureTypeRef.current.get(t.id)
+    let defId = spriteId ?? currentDefId ?? (t.hatched ? '' : 'egg')
+    
+    // Fallback: if hatched but no sprite assigned (or still an egg), pick a random manifest sprite
+    if (t.hatched && !spriteId && (!defId || defId === 'egg')) {
+      const keys = Object.keys(spriteTextureMapsRef.current)
+      if (keys.length > 0) {
+        defId = keys[Math.floor(Math.random() * keys.length)]
+        
+        // Persist so choice survives terminal array re-renders
+        const store = useTerminalStore.getState()
+        store.setShellConfig(t.id, {
+          ...(t.shellConfig || { id: t.id }),
+          id: t.id,
+          creature: {
+            ...(t.shellConfig?.creature || { id: t.id }),
+            id: t.id,
+            hatched: t.hatched,
+            spriteId: defId
+          }
+        } as any)
+      } else {
+        defId = 'egg'
+      }
+    }
+
+    const isTransforming = currentDefId && currentDefId !== defId
+    creatureTypeRef.current.set(t.id, defId)
+
+    let baked = bakedRef.current.get(defId)
+    // Fall back to sprite textures if not a built-in
+    if (!baked && spriteTextureMapsRef.current[defId]) {
+      baked = { textureMap: spriteTextureMapsRef.current[defId] as TextureMap, fpsMap: spriteFpsMapsRef.current[defId] as FpsMap }
+    }
+    
+    // If still no baked definition found (e.g. manifest not loaded), skip creation until next sync
+    if (!baked) return
+
+    const existing = creaturesRef.current.get(t.id)
+    if (!existing) {
+      const creature = new Creature(t.id, baked.textureMap, baked.fpsMap, territory, icon)
+      creaturesRef.current.set(t.id, creature)
+      app.stage.addChild(creature.container)
+    } else if (isTransforming) {
+      const savedX = existing.container.x
+      const savedY = existing.container.y
+      app.stage.removeChild(existing.container)
+      existing.destroy()
+
+      const creature = new Creature(t.id, baked.textureMap, baked.fpsMap, territory, icon)
+      creature.container.x = savedX
+      creature.container.y = savedY
       creaturesRef.current.set(t.id, creature)
       app.stage.addChild(creature.container)
     } else {
-      creaturesRef.current.get(t.id)!.setTerritory(territory)
+      existing.setTerritory(territory)
+      // also strictly pass computerIcon updates if existing:
+      existing.setComputerIcon(icon)
     }
 
     // Sync state
@@ -116,8 +191,11 @@ export default function Habitat() {
   const containerRef = useRef<HTMLDivElement>(null)
   const appRef = useRef<PIXI.Application | null>(null)
   const creaturesRef = useRef<Map<string, Creature>>(new Map())
+  const iconsRef = useRef<Map<string, ComputerIcon>>(new Map())
   const bakedRef = useRef<Map<string, BakedCreature>>(new Map())
   const creatureTypeRef = useRef<Map<string, string>>(new Map())
+  const spriteTextureMapsRef = useRef<Record<string, Record<string, PIXI.Texture[]>>>({})
+  const spriteFpsMapsRef = useRef<Record<string, Record<string, number>>>({})
   const territoryRef = useRef<Map<string, Territory>>(new Map())
 
   const terminals = useTerminalStore((s) => s.terminals)
@@ -146,7 +224,7 @@ export default function Habitat() {
       antialias: false,
       resolution: window.devicePixelRatio ?? 1,
       autoDensity: true
-    }).then(() => {
+    }).then(async () => {
       if (cancelled) return
 
       el.appendChild(app.canvas as HTMLCanvasElement)
@@ -161,13 +239,26 @@ export default function Habitat() {
         bakedRef.current.set(def.id, { textureMap, fpsMap })
       }
 
+      // Load PNG spritesheets from manifest
+      const textureMaps: Record<string, Record<string, PIXI.Texture[]>> = {}
+      const fpsMaps: Record<string, Record<string, number>> = {}
+
+      for (const entry of manifest.creatures) {
+        const { textureMap, fpsMap } = await loadManifestCreature(entry as any)
+        textureMaps[entry.id] = textureMap
+        fpsMaps[entry.id] = fpsMap
+      }
+      
+      spriteTextureMapsRef.current = textureMaps
+      spriteFpsMapsRef.current = fpsMaps
+
       app.ticker.add((ticker) => {
         for (const creature of creaturesRef.current.values()) {
           creature.update(ticker.deltaTime)
         }
       })
 
-      syncCreatures(app, terminalsRef.current, creaturesRef, bakedRef, creatureTypeRef, territoryRef)
+      syncCreatures(app, terminalsRef.current, creaturesRef, iconsRef, bakedRef, creatureTypeRef, territoryRef, spriteTextureMapsRef, spriteFpsMapsRef)
 
       // Apply initial settings to any creatures that were just created
       applySpeedToAll(creaturesRef, speedRef.current)
@@ -196,7 +287,7 @@ export default function Habitat() {
     const app = appRef.current
     if (!app || !bakedRef.current.size) return
 
-    syncCreatures(app, terminals, creaturesRef, bakedRef, creatureTypeRef, territoryRef)
+    syncCreatures(app, terminals, creaturesRef, iconsRef, bakedRef, creatureTypeRef, territoryRef, spriteTextureMapsRef, spriteFpsMapsRef)
 
     // After sync, apply current speed + names to all creatures (including new ones)
     applySpeedToAll(creaturesRef, speedRef.current)
@@ -220,47 +311,7 @@ export default function Habitat() {
     applyNamesToAll(creaturesRef, terminalsRef.current, showCreatureNames)
   }, [showCreatureNames])
 
-  // ---------------------------------------------------------------------------
-  // Listen for hatch events — swap EGG creature → BLOB
-  // ---------------------------------------------------------------------------
-  useEffect(() => {
-    const off = window.agentAPI.onEvent((terminalId, type) => {
-      if (type !== 'hatch') return
 
-      const app = appRef.current
-      if (!app) return
-
-      const baked = bakedRef.current.get('blob')
-      if (!baked) return
-
-      const territory = territoryRef.current.get(terminalId)
-      if (!territory) return
-
-      const existing = creaturesRef.current.get(terminalId)
-      const savedX = existing?.container.x ?? territory.x + territory.width / 2
-      const savedY = existing?.container.y ?? territory.y + territory.height / 2
-
-      if (existing) {
-        app.stage.removeChild(existing.container)
-        existing.destroy()
-      }
-
-      creatureTypeRef.current.set(terminalId, 'blob')
-      const blob = new Creature(terminalId, baked.textureMap, baked.fpsMap, territory)
-      blob.container.x = savedX
-      blob.container.y = savedY
-      blob.speedMultiplier = speedRef.current
-      creaturesRef.current.set(terminalId, blob)
-      app.stage.addChild(blob.container)
-      blob.setState('idle')
-
-      // Apply name label after hatch (store update is async, use terminalsRef)
-      const t = terminalsRef.current.find((t) => t.id === terminalId)
-      blob.setName(t?.creatureName, showNamesRef.current)
-    })
-
-    return off
-  }, [])
 
   return <div ref={containerRef} className="habitat" />
 }
@@ -288,3 +339,4 @@ function applyNamesToAll(
     creature.setName(t?.creatureName, visible)
   }
 }
+

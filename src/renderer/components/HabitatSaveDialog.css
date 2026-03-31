@@ -1,0 +1,259 @@
+.hsave-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.hsave-dialog {
+  background: #12122a;
+  border: 1px solid var(--border, #1e1e3a);
+  border-radius: 8px;
+  width: 520px;
+  max-width: 95vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+}
+
+.hsave-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border, #1e1e3a);
+  flex-shrink: 0;
+}
+
+.hsave-header h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text, #c8cce4);
+}
+
+.hsave-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim, #8888aa);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.hsave-close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text, #c8cce4);
+}
+
+.hsave-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hsave-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hsave-label {
+  font-size: 12px;
+  color: var(--text-dim, #8888aa);
+  font-weight: 500;
+}
+
+.hsave-input {
+  background: #0d0d24;
+  border: 1px solid var(--border, #1e1e3a);
+  border-radius: 4px;
+  padding: 7px 10px;
+  color: var(--text, #c8cce4);
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+.hsave-input:focus {
+  border-color: var(--accent, #5b90f0);
+}
+.hsave-input::placeholder {
+  color: var(--text-dim, #8888aa);
+  opacity: 0.6;
+}
+
+.hsave-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text, #c8cce4);
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hsave-shell-count {
+  font-weight: 400;
+  color: var(--text-dim, #8888aa);
+}
+
+.hsave-shells-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hsave-shell-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px;
+  background: #0d0d24;
+  border-radius: 6px;
+  border: 1px solid var(--border, #1e1e3a);
+}
+
+.hsave-shell-index {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(91, 144, 240, 0.2);
+  color: var(--accent, #5b90f0);
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 7px;
+}
+
+.hsave-shell-fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.hsave-shell-name {
+  font-weight: 500;
+}
+
+.hsave-shell-shell,
+.hsave-shell-cwd {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.hsave-shell-remove {
+  background: none;
+  border: none;
+  color: var(--text-dim, #8888aa);
+  cursor: pointer;
+  font-size: 18px;
+  padding: 4px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.hsave-shell-remove:hover:not(:disabled) {
+  background: rgba(255, 68, 85, 0.15);
+  color: #ff4455;
+}
+.hsave-shell-remove:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.hsave-add-shell {
+  background: none;
+  border: 1px dashed var(--border, #1e1e3a);
+  border-radius: 6px;
+  padding: 8px;
+  color: var(--text-dim, #8888aa);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  width: 100%;
+  text-align: center;
+}
+.hsave-add-shell:hover {
+  border-color: var(--accent, #5b90f0);
+  color: var(--accent, #5b90f0);
+}
+
+.hsave-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-top: 1px solid var(--border, #1e1e3a);
+  flex-shrink: 0;
+}
+
+.hsave-dirty-indicator {
+  font-size: 11px;
+  color: var(--text-dim, #8888aa);
+}
+
+.hsave-footer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.hsave-btn {
+  background: #1e1e3a;
+  border: 1px solid var(--border, #1e1e3a);
+  border-radius: 5px;
+  padding: 6px 14px;
+  color: var(--text, #c8cce4);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.hsave-btn:hover {
+  background: #2a2a4a;
+}
+.hsave-btn-primary {
+  background: var(--accent, #5b90f0);
+  border-color: var(--accent, #5b90f0);
+  color: #fff;
+}
+.hsave-btn-primary:hover:not(:disabled) {
+  background: #6b9eff;
+}
+.hsave-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.hsave-loading {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-dim, #8888aa);
+  font-size: 13px;
+}
+
+.hsave-creature-info {
+  font-size: 11px;
+  color: var(--accent, #5b90f0);
+  padding: 3px 6px;
+  background: rgba(91, 144, 240, 0.1);
+  border-radius: 3px;
+  margin-top: 2px;
+}

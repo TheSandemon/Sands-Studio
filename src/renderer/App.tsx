@@ -10,7 +10,11 @@ import ModuleCreatorV2 from './components/ModuleCreatorV2'
 import HabitatSaveDialog from './components/HabitatSaveDialog'
 import HabitatManagerDialog from './components/HabitatManagerDialog'
 import ShellSettingsDialog from './components/ShellSettingsDialog'
+
 import DreamStatePanel from './components/DreamStatePanel'
+import AgentStatusPanel from './components/AgentStatusPanel'
+import CommsPanel from './components/CommsPanel'
+import CollisionToast from './components/CollisionToast'
 import { useTerminalStore } from './store/useTerminalStore'
 import { useSettingsStore } from './store/useSettingsStore'
 import { useModuleStore } from './stores/useModuleStore'
@@ -72,6 +76,8 @@ export default function App() {
   const [habitatManageOpen, setHabitatManageOpen] = useState(false)
   const [shellSettingsSessionId, setShellSettingsSessionId] = useState<string | null>(null)
   const [dreamStateOpen, setDreamStateOpen] = useState(false)
+
+  const [commsPanelOpen, setCommsPanelOpen] = useState(false)
   const terminalPanelHeight = useSettingsStore((s) => s.terminalPanelHeight)
   const habitatVisible = useSettingsStore((s) => s.habitatVisible)
   const terminalVisible = useSettingsStore((s) => s.terminalVisible)
@@ -100,8 +106,8 @@ export default function App() {
     const handler = (manifest: ModuleManifest, assetPaths: Record<string, string>) => {
       useModuleStore.getState().loadModule(manifest, assetPaths ?? {})
     }
-    api.onManifest(handler)
-    return () => api.onManifest(handler)
+    const off = api.onManifest(handler)
+    return off
   }, [])
 
   // Listen for module:status to reset store when module stops cleanly
@@ -113,8 +119,8 @@ export default function App() {
         useModuleStore.getState().reset()
       }
     }
-    api.onStatus(handler)
-    return () => api.onStatus(handler)
+    const off = api.onStatus(handler)
+    return off
   }, [])
 
   // Listen for terminal:batch-created (from habitat:apply) to sync store with main process IDs
@@ -207,7 +213,7 @@ export default function App() {
   }, [])
 
   return (
-    <>
+    <ErrorBoundary label="Root">
       <div className="app">
         {/* ── Draggable title bar with integrated menu ── */}
         <div className="titlebar">
@@ -223,6 +229,7 @@ export default function App() {
             onManageHabitats={() => setHabitatManageOpen(true)}
             onOpenShellSettings={(sessionId) => setShellSettingsSessionId(sessionId)}
             onOpenDreamState={() => setDreamStateOpen(true)}
+
           />
           <span className="titlebar-title">Terminal Habitat</span>
           <div className="titlebar-actions">
@@ -251,8 +258,29 @@ export default function App() {
                 <Habitat />
               </ErrorBoundary>
             )}
+            {/* ── Agent status bar — always visible when habitat is shown ── */}
+            {terminals.length > 0 && <AgentStatusPanel />}
           </div>
         ) : null}
+
+        {/* ── Comms panel toggle ── */}
+        {terminalVisible && terminals.length > 0 && (
+          <div className="comms-section" style={{ height: commsPanelOpen ? 200 : 32, flexShrink: 0, transition: 'height 0.2s', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '4px 10px', gap: 8, borderBottom: '1px solid var(--border)', background: 'var(--bg-mid)' }}>
+              <button
+                onClick={() => setCommsPanelOpen(o => !o)}
+                style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', padding: '2px 6px', borderRadius: 4 }}
+              >
+                {commsPanelOpen ? '▼' : '▶'} Comms
+              </button>
+            </div>
+            {commsPanelOpen && (
+              <ErrorBoundary label="CommsPanel">
+                <CommsPanel />
+              </ErrorBoundary>
+            )}
+          </div>
+        )}
 
         {/* ── Terminal grid (compact strip) ── */}
         {terminalVisible && (
@@ -278,6 +306,9 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* Collision toast — fixed overlay, outside .app */}
+      <CollisionToast />
 
       {/* Settings dialog rendered via portal — outside .app to avoid overflow clipping */}
       <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
@@ -329,6 +360,8 @@ export default function App() {
           <DreamStatePanel onClose={() => setDreamStateOpen(false)} />
         </ErrorBoundary>
       )}
-    </>
+
+
+    </ErrorBoundary>
   )
 }

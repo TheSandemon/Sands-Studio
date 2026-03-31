@@ -1,0 +1,256 @@
+{
+  "$schema": "./manifest.schema.json",
+  "creatures": [
+    {
+      "id": "bat",
+      "displayName": "Bat",
+      "spriteSheet": "bat_spritesheet.png",
+      "sim": {
+        "edgeGraph": "bat",
+        "initialNodeId": "idle",
+        "hungerRate": 0.6,
+        "energyRate": 1.5,
+        "energyRecoveryRate": 1.8,
+        "hungerThreshold": 55,
+        "energyThreshold": 30,
+        "maxHp": 60,
+        "territorySize": 150,
+        "speed": 1.4,
+        "personality": "Nocturnal hunter. Flies in short bursts, rests frequently."
+      }
+    },
+    {
+      "id": "crab",
+      "displayName": "Crab",
+      "spriteSheet": "crab_spritesheet.png",
+      "sim": {
+        "edgeGraph": "default",
+        "initialNodeId": "idle",
+        "hungerRate": 0.3,
+        "energyRate": 0.5,
+        "energyRecoveryRate": 2.5,
+        "hungerThreshold": 65,
+        "energyThreshold": 20,
+        "maxHp": 90,
+        "territorySize": 60,
+        "speed": 0.5,
+        "personality": "Patient and slow. Forages along the shoreline, tends to cluster near others."
+      }
+    },
+    {
+      "id": "fish",
+      "displayName": "Fish",
+      "spriteSheet": "fish_spritesheet.png",
+      "sim": {
+        "edgeGraph": "default",
+        "initialNodeId": "idle",
+        "hungerRate": 0.4,
+        "energyRate": 0.8,
+        "energyRecoveryRate": 2.0,
+        "hungerThreshold": 60,
+        "energyThreshold": 20,
+        "maxHp": 70,
+        "territorySize": 120,
+        "speed": 1.0,
+        "personality": "Schooling creature. Moves in gentle arcs. Needs nearby companions for comfort."
+      }
+    },
+    {
+      "id": "frog",
+      "displayName": "Frog",
+      "spriteSheet": "frog_spritesheet.png",
+      "sim": {
+        "edgeGraph": "default",
+        "initialNodeId": "idle",
+        "hungerRate": 0.5,
+        "energyRate": 0.7,
+        "energyRecoveryRate": 1.5,
+        "hungerThreshold": 65,
+        "energyThreshold": 25,
+        "maxHp": 75,
+        "territorySize": 90,
+        "speed": 0.9,
+        "personality": "Patient ambush predator. Sits still for long periods, then strikes when hungry."
+      }
+    },
+    {
+      "id": "ghost",
+      "displayName": "Ghost",
+      "spriteSheet": "ghost_spritesheet.png",
+      "sim": {
+        "edgeGraph": "ghost",
+        "initialNodeId": "idle",
+        "hungerRate": 0.1,
+        "energyRate": 0.2,
+        "energyRecoveryRate": 0.5,
+        "hungerThreshold": 80,
+        "energyThreshold": 40,
+        "maxHp": 50,
+        "territorySize": 200,
+        "speed": 1.2,
+        "personality": "Ethereal wanderer. Rarely needs food or rest. Drifts between places unpredictably."
+      }
+    },
+    {
+      "id": "goblin",
+      "displayName": "Goblin",
+      "spriteSheet": "goblin_spritesheet.png",
+      "sim": {
+        "edgeGraph": "goblin",
+        "initialNodeId": "idle",
+        "hungerRate": 0.7,
+        "energyRate": 1.2,
+        "energyRecoveryRate": 1.0,
+        "hungerThreshold": 50,
+        "energyThreshold": 25,
+        "maxHp": 80,
+        "territorySize": 100,
+        "speed": 1.1,
+        "personality": "Restless and mischievous. Gets hungry fast, prone to wandering far from home."
+      }
+    },
+    {
+      "id": "heart",
+      "displayName": "Heart",
+      "spriteSheet": "heart_spritesheet.png",
+      "sim": {
+        "edgeGraph": "heart",
+        "initialNodeId": "idle",
+        "hungerRate": 0.05,
+        "energyRate": 0.1,
+        "energyRecoveryRate": 3.0,
+        "hungerThreshold": 90,
+        "energyThreshold": 15,
+        "maxHp": 40,
+        "territorySize": 50,
+        "speed": 0.3,
+        "personality": "Gentle and undemanding. Rarely needs food. Glows brighter when near other creatures."
+      }
+    },
+    {
+      "id": "mushroom",
+      "displayName": "Mushroom",
+      "spriteSheet": "mushroom_spritesheet.png",
+      "sim": {
+        "edgeGraph": "mushroom",
+        "initialNodeId": "idle",
+        "hungerRate": 0.0,
+        "energyRate": 0.0,
+        "energyRecoveryRate": 0.0,
+        "hungerThreshold": 100,
+        "energyThreshold": 100,
+        "maxHp": 30,
+        "territorySize": 30,
+        "speed": 0.0,
+        "personality": "Stationary. Food source for slime. Does not wander."
+      }
+    },
+    {
+      "id": "skeleton",
+      "displayName": "Skeleton",
+      "spriteSheet": "skeleton_spritesheet.png",
+      "sim": {
+        "edgeGraph": "skeleton",
+        "initialNodeId": "idle",
+        "hungerRate": 0.2,
+        "energyRate": 0.6,
+        "energyRecoveryRate": 1.2,
+        "hungerThreshold": 75,
+        "energyThreshold": 30,
+        "maxHp": 85,
+        "territorySize": 110,
+        "speed": 0.8,
+        "personality": "Relentless. Doesn't tire easily. Forgets to eat until critically low on energy."
+      }
+    },
+    {
+      "id": "slime",
+      "displayName": "Slime",
+      "spriteSheet": "slime_spritesheet.png",
+      "sim": {
+        "edgeGraph": "slime",
+        "initialNodeId": "idle",
+        "hungerRate": 0.3,
+        "energyRate": 0.4,
+        "energyRecoveryRate": 1.5,
+        "hungerThreshold": 70,
+        "energyThreshold": 20,
+        "maxHp": 80,
+        "territorySize": 80,
+        "speed": 0.6,
+        "personality": "Slow but resilient. Absorbs nearby mushrooms to stave off hunger. Bonds with other slimes."
+      }
+    },
+    {
+      "id": "spider",
+      "displayName": "Spider",
+      "spriteSheet": "spider_spritesheet.png",
+      "sim": {
+        "edgeGraph": "spider",
+        "initialNodeId": "idle",
+        "hungerRate": 0.5,
+        "energyRate": 1.0,
+        "energyRecoveryRate": 1.3,
+        "hungerThreshold": 55,
+        "energyThreshold": 25,
+        "maxHp": 65,
+        "territorySize": 130,
+        "speed": 1.3,
+        "personality": "Patient weaver. Sits still to conserve energy, then springs into action when prey is near."
+      }
+    }
+  ],
+  "interactions": [
+    {
+      "pair": ["slime", "mushroom"],
+      "description": "Slime absorbs a nearby mushroom to restore hunger",
+      "condition": "adjacent",
+      "outcome": {
+        "slime": { "hunger": -30 },
+        "events": [{ "type": "slime_ate_mushroom" }]
+      },
+      "cooldownTicks": 200
+    },
+    {
+      "pair": ["slime", "slime"],
+      "description": "Two slimes briefly merge or acknowledge each other",
+      "condition": "adjacent",
+      "outcome": {
+        "both": { "mood": "social" },
+        "events": [{ "type": "slimes_acknowledged" }]
+      },
+      "cooldownTicks": 300
+    },
+    {
+      "pair": ["bat", "slime"],
+      "description": "Bat swoops down and attacks a slime",
+      "condition": "adjacent_and_hunting",
+      "outcome": {
+        "bat": { "hunger": -40, "energy": -15 },
+        "slime": { "hp": -15 },
+        "events": [{ "type": "bat_attacked_slime" }]
+      },
+      "cooldownTicks": 100
+    },
+    {
+      "pair": ["heart", "slime"],
+      "description": "Heart's glow energizes a nearby slime",
+      "condition": "nearby",
+      "outcome": {
+        "slime": { "energy": 10 },
+        "events": [{ "type": "heart_energized_slime" }]
+      },
+      "cooldownTicks": 150
+    },
+    {
+      "pair": ["fish", "crab"],
+      "description": "Fish and crab interact near the water's edge",
+      "condition": "adjacent",
+      "outcome": {
+        "both": { "mood": "social" },
+        "events": [{ "type": "fish_and_crab_met" }]
+      },
+      "cooldownTicks": 250
+    }
+  ]
+}

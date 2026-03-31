@@ -1,0 +1,163 @@
+/* ── CommsPanel ─────────────────────────────────────────────────────────── */
+.comms-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.comms-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-mid);
+  flex-shrink: 0;
+}
+
+.comms-header-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+
+.comms-back {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+.comms-back:hover { background: var(--bg); }
+
+.comms-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.comms-close:hover { color: var(--text); background: var(--bg); }
+
+.comms-header-count {
+  font-size: 10px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.comms-filter-tabs {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.comms-filter-tab {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  text-transform: capitalize;
+  transition: all 0.15s;
+}
+.comms-filter-tab:hover { color: var(--text); border-color: var(--border); }
+.comms-filter-tab.active { color: var(--accent); border-color: var(--accent); background: rgba(91,144,240,0.1); }
+
+.comms-threads-section {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.comms-section-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+.comms-thread-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin-bottom: 3px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s;
+}
+.comms-thread-row:hover { border-color: var(--accent); }
+
+.comms-thread-icon { font-size: 11px; flex-shrink: 0; }
+.comms-thread-topic { flex: 1; font-size: 11px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.comms-thread-count { font-size: 10px; color: var(--text-dim); flex-shrink: 0; }
+
+.comms-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.comms-empty {
+  padding: 20px 16px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.comms-msg {
+  display: grid;
+  grid-template-columns: 16px 60px 1fr auto;
+  gap: 6px;
+  align-items: start;
+  padding: 4px 10px;
+  font-size: 11px;
+  line-height: 1.4;
+  border-bottom: 1px solid transparent;
+}
+.comms-msg:hover { background: rgba(255,255,255,0.02); }
+.comms-msg-broadcast { border-left: 2px solid var(--accent-alt); padding-left: 8px; }
+.comms-msg-direct { border-left: 2px solid var(--green); padding-left: 8px; }
+.comms-msg-intent { border-left: 2px solid var(--yellow); padding-left: 8px; }
+.comms-msg-handoff { border-left: 2px solid var(--accent); padding-left: 8px; }
+
+.comms-msg-icon { font-size: 10px; padding-top: 1px; flex-shrink: 0; }
+.comms-msg-sender { font-weight: 600; color: var(--accent); flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.comms-msg-content { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.comms-msg-time { font-size: 9px; color: var(--text-dim); flex-shrink: 0; padding-top: 2px; }
+
+.comms-thread-preview {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+}
+.comms-thread-preview:hover .comms-msg { background: rgba(91,144,240,0.05); }
+.comms-thread-cta {
+  display: block;
+  font-size: 9px;
+  color: var(--accent);
+  padding: 1px 10px 4px 88px;
+}

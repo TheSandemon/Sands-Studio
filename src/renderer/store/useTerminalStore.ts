@@ -15,6 +15,7 @@ export interface TerminalSession {
   specialty?: string
   shellConfig?: ShellConfig
   messageCount: number
+  visible?: boolean
 }
 
 interface TerminalStore {
@@ -24,6 +25,7 @@ interface TerminalStore {
   addTerminalBatch: (sessions: Array<{ id: string; name: string; shellConfig: ShellConfig; creature?: CreatureConfig }>) => void
   removeTerminal: (id: string) => void
   setState: (id: string, state: TerminalState) => void
+  setVisible: (id: string, visible: boolean) => void
   recordActivity: (id: string) => void
   appendAgentLog: (id: string, text: string) => void
   setAgentRunning: (id: string, running: boolean) => void
@@ -102,6 +104,12 @@ export const useTerminalStore = create<TerminalStore>((set) => ({
   setState(id, state) {
     set((s) => ({
       terminals: s.terminals.map((t) => (t.id === id ? { ...t, state } : t))
+    }))
+  },
+
+  setVisible(id, visible) {
+    set((s) => ({
+      terminals: s.terminals.map((t) => (t.id === id ? { ...t, visible } : t))
     }))
   },
 
