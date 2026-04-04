@@ -33,6 +33,7 @@ export interface CreatureConfig {
   description?: string;
   hatched: boolean;
   eggStep?: number;
+  provider?: 'anthropic' | 'openai';
   apiKey?: string;
   baseURL?: string;
   model?: string;
@@ -40,6 +41,18 @@ export interface CreatureConfig {
   createdAt?: string;
   /** Which spritesheet this creature uses (e.g. 'slime', 'goblin'). Omitted = default blob. */
   spriteId?: string;
+  /** The agent's designated role / persona (e.g. "Frontend Engineer", "DevOps") */
+  role?: string;
+  /** List of skills/capabilities this agent specializes in */
+  skills?: string[];
+  /** Autonomy mode — agent wakes at interval to pursue a goal */
+  autonomy?: {
+    enabled: boolean;
+    /** Milliseconds between wake-ups (e.g. 300000 = 5 minutes) */
+    intervalMs: number;
+    /** The overarching goal the agent pursues when it wakes */
+    goal: string;
+  };
 }
 
 export interface SavedAgent {
@@ -82,8 +95,11 @@ export interface Habitat {
   id: string;
   name: string;
   description?: string;
+  /** Absolute path to the project folder this habitat is bound to */
+  projectPath: string;
   shells: ShellConfig[];
   layout?: HabitatLayout;
   createdAt: number;
   updatedAt: number;
 }
+

@@ -22,6 +22,7 @@ import { useHabitatStore } from './store/useHabitatStore'
 import ModuleView from './module-engine/ModuleView'
 import type { ModuleManifest } from './module-engine/types'
 import type { ShellConfig, CreatureConfig, Habitat as HabitatSpec } from '../shared/habitatTypes'
+import { autonomyManager } from './agents/AgentAutonomyManager'
 import './styles/global.css'
 
 // ---------------------------------------------------------------------------
@@ -76,6 +77,12 @@ export default function App() {
   const [habitatManageOpen, setHabitatManageOpen] = useState(false)
   const [shellSettingsSessionId, setShellSettingsSessionId] = useState<string | null>(null)
   const [dreamStateOpen, setDreamStateOpen] = useState(false)
+
+  // Start the autonomy manager on mount
+  useEffect(() => {
+    autonomyManager.start()
+    return () => autonomyManager.stop()
+  }, [])
 
   const [commsPanelOpen, setCommsPanelOpen] = useState(false)
   const terminalPanelHeight = useSettingsStore((s) => s.terminalPanelHeight)
@@ -219,9 +226,6 @@ export default function App() {
         <div className="titlebar">
           <MenuBar
             onOpenSettings={() => setSettingsOpen(true)}
-            onCreateModule={() => setBootstrapOpen(true)}
-            onCreateModuleV2={() => setBootstrapV2Open(true)}
-            onOpenModuleSettings={(id) => setModuleSettingsId(id)}
             onSaveHabitat={() => {
               setHabitatSaveId(useHabitatStore.getState().activeHabitatId)
               setHabitatSaveOpen(true)
@@ -229,7 +233,10 @@ export default function App() {
             onManageHabitats={() => setHabitatManageOpen(true)}
             onOpenShellSettings={(sessionId) => setShellSettingsSessionId(sessionId)}
             onOpenDreamState={() => setDreamStateOpen(true)}
-
+            onEditHabitat={(id) => {
+              setHabitatSaveId(id)
+              setHabitatSaveOpen(true)
+            }}
           />
           <span className="titlebar-title">Terminal Habitat</span>
           <div className="titlebar-actions">
@@ -251,7 +258,47 @@ export default function App() {
           <div className="habitat-section">
             {terminals.length === 0 ? (
               <div className="habitat-empty">
-                <p>Open a Shell to summon your first creature.</p>
+                <div className="habitat-empty-icon">🏠</div>
+                <h2 style={{ color: '#c8cce4', fontSize: 18, margin: '0 0 8px' }}>No Active Habitat</h2>
+                <p style={{ color: 'rgba(200,204,228,0.5)', fontSize: 12, margin: '0 0 16px' }}>
+                  Select a project folder to create your workspace.
+                </p>
+                <button
+                  className="habitat-select-project-btn"
+                  onClick={async () => {
+                    const result = await window.habitatAPI.selectProject()
+                    if (!result?.ok || !result.projectPath) return
+                    const folderName = result.projectPath.split(/[\\/]/).pop() || 'Project'
+                    const newHabitat: HabitatSpec = {
+                      id: `hab_${Date.now()}`,
+                      name: folderName,
+                      projectPath: result.projectPath,
+                      shells: [],
+                      createdAt: Date.now(),
+                      updatedAt: Date.now(),
+                    }
+                    useHabitatStore.getState().addHabitat(newHabitat)
+                    useHabitatStore.getState().setActiveHabitatId(newHabitat.id)
+                    try {
+                      await window.habitatAPI.apply(newHabitat)
+                      const all = useHabitatStore.getState().listHabitats()
+                      window.habitatAPI?.trackHabitats?.(all.map((hab) => hab.id))
+                    } catch (err) {
+                      console.error('Failed to apply new habitat:', err)
+                    }
+                  }}
+                >
+                  📂 Select Project Folder
+                </button>
+                {useHabitatStore.getState().habitats.length > 0 && (
+                  <button
+                    className="habitat-select-project-btn"
+                    style={{ marginTop: 8, opacity: 0.7 }}
+                    onClick={() => setHabitatManageOpen(true)}
+                  >
+                    🗂️ Open Existing Habitat
+                  </button>
+                )}
               </div>
             ) : (
               <ErrorBoundary label="Habitat">

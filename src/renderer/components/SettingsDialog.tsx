@@ -10,7 +10,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'appearance', label: 'Appearance' },
   { id: 'terminal', label: 'Terminal' },
   { id: 'habitat', label: 'Habitat' },
-  { id: 'agent', label: 'Agent' },
 ]
 
 const ACCENT_PRESETS = [
@@ -163,7 +162,7 @@ function TerminalPanel() {
 }
 
 function HabitatPanel() {
-  const { terminalPanelHeight, showCreatureNames, creatureSpeed, setSettings } = useSettingsStore()
+  const { terminalPanelHeight, showCreatureNames, creatureSpeed, habitatBackground, setSettings } = useSettingsStore()
   return (
     <>
       <div className="settings-section-title">Layout</div>
@@ -212,53 +211,18 @@ function HabitatPanel() {
           ))}
         </div>
       </div>
-    </>
-  )
-}
-
-function AgentPanel() {
-  const { defaultApiKey, defaultModel, defaultBaseURL, setSettings } = useSettingsStore()
-  return (
-    <>
-      <div className="settings-section-title">Defaults for new creatures</div>
       <div className="settings-row">
-        <span className="settings-label">
-          API Key
-          <span className="settings-label-sub">Stored locally. Used for module bootstrap and creatures.</span>
-        </span>
-        <input
-          type="password"
-          className="settings-input settings-input-wide"
-          value={defaultApiKey}
-          placeholder="sk-ant-..."
-          onChange={(e) => setSettings({ defaultApiKey: e.target.value })}
-        />
-      </div>
-      <div className="settings-row">
-        <span className="settings-label">
-          Default model
-          <span className="settings-label-sub">Claude model ID for new agents</span>
-        </span>
-        <input
-          type="text"
-          className="settings-input settings-input-wide"
-          value={defaultModel}
-          placeholder="Enter model ID"
-          onChange={(e) => setSettings({ defaultModel: e.target.value })}
-        />
-      </div>
-      <div className="settings-row">
-        <span className="settings-label">
-          Default base URL
-          <span className="settings-label-sub">Leave blank to use api.anthropic.com</span>
-        </span>
-        <input
-          type="text"
-          className="settings-input settings-input-wide"
-          value={defaultBaseURL}
-          placeholder="https://api.anthropic.com"
-          onChange={(e) => setSettings({ defaultBaseURL: e.target.value })}
-        />
+        <span className="settings-label">Habitat background</span>
+        <select
+          className="settings-select"
+          value={habitatBackground}
+          onChange={(e) => setSettings({ habitatBackground: e.target.value as any })}
+        >
+          <option value="default">Default Dark</option>
+          <option value="space">Deep Space</option>
+          <option value="grid">Cyber Grid</option>
+          <option value="blueprint">Blueprint Matrix</option>
+        </select>
       </div>
     </>
   )
@@ -340,7 +304,6 @@ export default function SettingsDialog({ open, onClose }: Props) {
             {activeTab === 'appearance' && <AppearancePanel />}
             {activeTab === 'terminal'   && <TerminalPanel />}
             {activeTab === 'habitat'    && <HabitatPanel />}
-            {activeTab === 'agent'      && <AgentPanel />}
           </div>
         </div>
 

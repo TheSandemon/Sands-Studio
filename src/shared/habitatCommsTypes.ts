@@ -35,7 +35,7 @@ export interface HabitatMessage {
   expires_at?: number
 }
 
-export type IntentType = 'file_edit' | 'task' | 'context_handoff'
+export type IntentType = 'file_edit' | 'task' | 'context_handoff' | 'flowchart_node'
 
 export interface IntentPayload {
   type: IntentType

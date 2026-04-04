@@ -12,6 +12,9 @@ import { HookRegistry } from './hook-registry'
 import { PluginRegistry } from './plugin-registry'
 import { HabitatBus } from './habitat-bus'
 
+// Prevent gpu cache access denied / creation failure errors on Windows
+app.commandLine.appendSwitch('disable-gpu-shader-disk-cache')
+
 // DreamState module-level singletons
 const habitatLogs = new Map<string, HabitatLog>()
 const contextManagers = new Map<string, ContextManager>()
@@ -463,6 +466,225 @@ function createWindow(): BrowserWindow {
     if (result.canceled || !result.filePath) return { canceled: true }
     fs.writeFileSync(result.filePath, JSON.stringify(habitat, null, 2))
     return { ok: true, path: result.filePath }
+  })
+
+  // ── Flowchart IPC ──────────────────────────────────────────────────────
+  let flowchartWatcher: fs.FSWatcher | null = null
+
+  ipcMain.handle('flowchart:read', (_e, filePath: string) => {
+    try {
+      if (!fs.existsSync(filePath)) return { ok: false, error: 'File not found' }
+      const text = fs.readFileSync(filePath, 'utf8')
+      const stat = fs.statSync(filePath)
+      return { ok: true, text, mtime: stat.mtimeMs }
+    } catch (err) {
+      return { ok: false, error: String(err) }
+    }
+  })
+
+  ipcMain.handle('flowchart:write', (_e, filePath: string, text: string) => {
+    try {
+      fs.mkdirSync(resolve(filePath, '..'), { recursive: true })
+      fs.writeFileSync(filePath, text, 'utf8')
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, error: String(err) }
+    }
+  })
+
+  ipcMain.handle('flowchart:watch', (_e, filePath: string) => {
+    // Stop any previous watcher
+    if (flowchartWatcher) {
+      flowchartWatcher.close()
+      flowchartWatcher = null
+    }
+
+    if (!fs.existsSync(filePath)) {
+      return { ok: false, error: 'File not found' }
+    }
+
+    let debounce: NodeJS.Timeout | null = null
+    flowchartWatcher = fs.watch(filePath, (eventType) => {
+      if (eventType !== 'change') return
+      if (debounce) clearTimeout(debounce)
+      debounce = setTimeout(() => {
+        try {
+          const text = fs.readFileSync(filePath, 'utf8')
+          const stat = fs.statSync(filePath)
+          if (!win.isDestroyed()) {
+            win.webContents.send('flowchart:changed', { text, mtime: stat.mtimeMs })
+          }
+        } catch { /* file might be mid-write */ }
+      }, 200)
+    })
+
+    return { ok: true }
+  })
+
+  ipcMain.handle('flowchart:unwatch', () => {
+    if (flowchartWatcher) {
+      flowchartWatcher.close()
+      flowchartWatcher = null
+    }
+    return { ok: true }
+  })
+
+  ipcMain.handle('flowchart:find', (_e, cwd: string) => {
+    // Search for .mermaid files in the working directory
+    try {
+      const candidates = fs.readdirSync(cwd).filter((f) =>
+        f.endsWith('.mermaid') || f.endsWith('.mmd')
+      )
+      return { ok: true, files: candidates.map((f) => join(cwd, f)) }
+    } catch (err) {
+      return { ok: false, files: [], error: String(err) }
+    }
+  })
+
+  // ── Atlas: Directory Scanner ────────────────────────────────────────────
+  const ATLAS_IGNORE = new Set([
+    'node_modules', '.git', '.svn', '.hg', 'dist', 'build', 'out',
+    '.next', '.nuxt', '.cache', '.parcel-cache', 'coverage', '__pycache__',
+    '.DS_Store', 'Thumbs.db', '.idea', '.vscode', '.vs', 'vendor',
+    'target', 'bin', 'obj', '.turbo', '.vercel', '.output'
+  ])
+
+  interface AtlasNode {
+    name: string
+    path: string
+    isDir: boolean
+    children: AtlasNode[]
+  }
+
+  function scanDirectoryTree(dir: string, depth: number, maxDepth: number): AtlasNode[] {
+    if (depth >= maxDepth) return []
+    try {
+      const entries = fs.readdirSync(dir, { withFileTypes: true })
+      const results: AtlasNode[] = []
+
+      // Sort: directories first, then files
+      const sorted = entries
+        .filter((e) => !ATLAS_IGNORE.has(e.name) && !e.name.startsWith('.'))
+        .sort((a, b) => {
+          if (a.isDirectory() && !b.isDirectory()) return -1
+          if (!a.isDirectory() && b.isDirectory()) return 1
+          return a.name.localeCompare(b.name)
+        })
+
+      for (const entry of sorted) {
+        const fullPath = join(dir, entry.name)
+        const isDir = entry.isDirectory()
+        const children = isDir ? scanDirectoryTree(fullPath, depth + 1, maxDepth) : []
+        results.push({ name: entry.name, path: fullPath, isDir, children })
+      }
+      return results
+    } catch {
+      return []
+    }
+  }
+
+  function sanitizeId(name: string): string {
+    return name.replace(/[^a-zA-Z0-9_]/g, '_')
+  }
+
+  function atlasToMermaid(tree: AtlasNode[], parentId: string | null, lines: string[], depth: number): void {
+    for (const node of tree) {
+      const nodeId = parentId ? `${parentId}__${sanitizeId(node.name)}` : sanitizeId(node.name)
+
+      if (node.isDir) {
+        // Folders rendered as rounded boxes with folder emoji
+        lines.push(`    ${nodeId}["📁 ${node.name}"]`)
+        if (parentId) {
+          lines.push(`    ${parentId} --> ${nodeId}`)
+        }
+        // Style folder nodes: brighter border and clear white text
+        lines.push(`    style ${nodeId} fill:#2a2a50,stroke:#66a3ff,stroke-width:2px,color:#ffffff`)
+        atlasToMermaid(node.children, nodeId, lines, depth + 1)
+      } else {
+        // Files rendered as flat rectangles with file icon
+        const ext = node.name.includes('.') ? node.name.split('.').pop() : ''
+        const icon = getFileIcon(ext || '')
+        lines.push(`    ${nodeId}["${icon} ${node.name}"]`)
+        if (parentId) {
+          lines.push(`    ${parentId} --> ${nodeId}`)
+        }
+        // Style file nodes: lighter fill than background, pristine white text
+        lines.push(`    style ${nodeId} fill:#1a1a44,stroke:#66a3ff,stroke-width:1px,color:#f0f4ff`)
+      }
+    }
+  }
+
+  function getFileIcon(ext: string): string {
+    const iconMap: Record<string, string> = {
+      ts: '🔷', tsx: '⚛️', js: '🟡', jsx: '⚛️',
+      css: '🎨', html: '🌐', json: '📋', md: '📝',
+      py: '🐍', rs: '🦀', go: '🔵', rb: '💎',
+      mermaid: '🧜', mmd: '🧜', yml: '⚙️', yaml: '⚙️',
+      toml: '⚙️', env: '🔒', sh: '💻', bat: '💻',
+      png: '🖼️', jpg: '🖼️', svg: '🖼️', gif: '🖼️',
+    }
+    return iconMap[ext] || '📄'
+  }
+
+  // Cache for the Atlas tree
+  let atlasCache: { tree: AtlasNode[]; mermaid: string; scannedAt: number } | null = null
+
+  ipcMain.handle('flowchart:scan', (_e, cwd: string, opts?: { maxDepth?: number; forceRefresh?: boolean }) => {
+    try {
+      const maxDepth = opts?.maxDepth ?? 3
+      const forceRefresh = opts?.forceRefresh ?? false
+
+      // Use cache if fresh (< 5 seconds) unless forced
+      if (!forceRefresh && atlasCache && (Date.now() - atlasCache.scannedAt < 5000)) {
+        return { ok: true, mermaid: atlasCache.mermaid, tree: atlasCache.tree, cached: true }
+      }
+
+      const tree = scanDirectoryTree(cwd, 0, maxDepth)
+      const lines: string[] = ['graph BT']
+
+      // Terminals subgraph: Gives agents a starting location in the map
+      const activeTerminals = ptyManager.getSessionIds()
+      if (activeTerminals.length > 0) {
+        lines.push('  subgraph TerminalHub["📡 Active Shells"]')
+        for (const tid of activeTerminals) {
+          const name = tid.split('-').pop() || 'shell'
+          lines.push(`    terminal_${sanitizeId(tid)}["💻 ${name}"]`)
+        }
+        lines.push('  end')
+      }
+
+      // Root node
+      const rootName = cwd.split(/[\\/]/).pop() || 'project'
+      const rootId = sanitizeId(rootName)
+      lines.push(`    ${rootId}["🏠 ${rootName}"]`)
+      lines.push(`    style ${rootId} fill:#2a2a50,stroke:#ffdd55,stroke-width:2px,color:#ffdd55`)
+
+      // Link Terminals Hub to project root
+      for (const tid of activeTerminals) {
+        lines.push(`    terminal_${sanitizeId(tid)} --> ${rootId}`)
+      }
+
+      const mermaidText = lines.join('\n')
+
+      atlasCache = { tree, mermaid: mermaidText, scannedAt: Date.now() }
+
+      return { ok: true, mermaid: mermaidText, tree, rootId, cached: false }
+    } catch (err) {
+      return { ok: false, mermaid: '', tree: [], rootId: '', error: String(err) }
+    }
+  })
+
+  ipcMain.handle('flowchart:get-cwd', () => {
+    return process.cwd()
+  })
+
+  ipcMain.handle('habitat:select-project', async () => {
+    const result = await dialog.showOpenDialog(win, {
+      title: 'Select Project Folder',
+      properties: ['openDirectory'],
+    })
+    if (result.canceled || !result.filePaths[0]) return { canceled: true }
+    return { ok: true, projectPath: result.filePaths[0] }
   })
 
   ipcMain.handle('habitat:import', async () => {

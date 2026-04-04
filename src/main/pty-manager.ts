@@ -11,6 +11,10 @@ export interface PtyOptions {
 
 export class PtyManager extends EventEmitter {
   private sessions = new Map<string, pty.IPty>()
+  
+  getSessionIds(): string[] {
+    return Array.from(this.sessions.keys())
+  }
 
   create(id: string, options: PtyOptions = {}): void {
     const shell =

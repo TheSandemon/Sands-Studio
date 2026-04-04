@@ -134,7 +134,7 @@ export interface HabitatMessage {
 }
 
 export interface IntentPayload {
-  type: 'file_edit' | 'task' | 'context_handoff'
+  type: 'file_edit' | 'task' | 'context_handoff' | 'flowchart_node'
   target: string
   claimedBy: string
   expiresAt: number
@@ -281,6 +281,21 @@ declare global {
       apply: (habitat: object) => Promise<{ ok?: boolean; canceled?: boolean }>
       export: (habitat: object) => Promise<{ ok?: boolean; canceled?: boolean; path?: string }>
       import: () => Promise<{ ok?: boolean; canceled?: boolean; habitat?: object }>
+      clear: () => Promise<{ ok: boolean }>
+      trackHabitats: (habitatIds: string[]) => Promise<{ ok: boolean }>
+      getCurrentHabitatId: () => Promise<string | null>
+      getCurrentHabitatName: () => Promise<string>
+      selectProject: () => Promise<{ ok?: boolean; canceled?: boolean; projectPath?: string }>
+    }
+    flowchartAPI: {
+      read: (filePath: string) => Promise<{ ok: boolean; text?: string; mtime?: number; error?: string }>
+      write: (filePath: string, text: string) => Promise<{ ok: boolean; error?: string }>
+      watch: (filePath: string) => Promise<{ ok: boolean; error?: string }>
+      unwatch: () => Promise<{ ok: boolean }>
+      find: (cwd: string) => Promise<{ ok: boolean; files: string[]; error?: string }>
+      scan: (cwd: string, opts?: { maxDepth?: number; forceRefresh?: boolean }) => Promise<{ ok: boolean; mermaid: string; tree: unknown[]; rootId: string; cached?: boolean; error?: string }>
+      getCwd: () => Promise<string>
+      onChanged: (cb: (payload: { text: string; mtime: number }) => void) => () => void
     }
     agentAPI: {
       start: (terminalId: string, message: string, defaults?: { model?: string; baseURL?: string }) => Promise<void>
@@ -332,13 +347,18 @@ declare global {
     id: string
     name?: string
     specialty?: string
+    provider?: 'anthropic' | 'openai'
     apiKey?: string
     baseURL?: string
     /** Model ID to use for this creature (e.g. the value from Settings → Default Model). */
     model?: string
+    role?: string
+    skills?: string[]
+    autonomy?: { enabled: boolean; intervalMs: number; goal: string }
     /** MCP server configs — stored now, activated in a future phase. */
     mcpServers?: MCPServer[]
     hatched: boolean
+    eggStep?: number
     createdAt: string
     spriteId?: string
     messages: unknown[]

@@ -42,6 +42,7 @@ const habitatAPI = {
   getCurrentHabitatName: () => ipcRenderer.invoke('habitat:get-current-name'),
   clear: () => ipcRenderer.invoke('habitat:clear'),
   trackHabitats: (habitatIds: string[]) => ipcRenderer.invoke('habitat:track', habitatIds),
+  selectProject: () => ipcRenderer.invoke('habitat:select-project'),
 }
 
 const agentAPI = {
@@ -141,6 +142,24 @@ contextBridge.exposeInMainWorld('agentAPI', agentAPI)
 contextBridge.exposeInMainWorld('creatureAPI', creatureAPI)
 contextBridge.exposeInMainWorld('moduleAPI', moduleAPI)
 contextBridge.exposeInMainWorld('habitatAPI', habitatAPI)
+
+const flowchartAPI = {
+  read: (filePath: string) => ipcRenderer.invoke('flowchart:read', filePath),
+  write: (filePath: string, text: string) => ipcRenderer.invoke('flowchart:write', filePath, text),
+  watch: (filePath: string) => ipcRenderer.invoke('flowchart:watch', filePath),
+  unwatch: () => ipcRenderer.invoke('flowchart:unwatch'),
+  find: (cwd: string) => ipcRenderer.invoke('flowchart:find', cwd),
+  scan: (cwd: string, opts?: { maxDepth?: number; forceRefresh?: boolean }) =>
+    ipcRenderer.invoke('flowchart:scan', cwd, opts),
+  getCwd: () => ipcRenderer.invoke('flowchart:get-cwd'),
+  onChanged: (cb: (payload: { text: string; mtime: number }) => void) => {
+    const h = (_: Electron.IpcRendererEvent, payload: { text: string; mtime: number }) => cb(payload)
+    ipcRenderer.on('flowchart:changed', h)
+    return () => ipcRenderer.off('flowchart:changed', h)
+  },
+}
+
+contextBridge.exposeInMainWorld('flowchartAPI', flowchartAPI)
 
 // habitatlogAPI
 const habitatlogAPI = {

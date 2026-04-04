@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTerminalStore, type TerminalSession } from '../store/useTerminalStore'
 import { useSettingsStore } from '../store/useSettingsStore'
+import { useFlowchartStore } from '../store/useFlowchartStore'
 import './AgentChat.css'
 
 interface Props {
@@ -96,6 +97,29 @@ export default function AgentChat({ session }: Props) {
           setAgentRunning(session.id, false)
           if (hatched) setTermState(session.id, 'idle')
           break
+
+        case 'visual_status': {
+          const vs = payload as { status: string; icon: string; nodeId: string | null }
+          const flowStore = useFlowchartStore.getState()
+
+          if (vs.nodeId && vs.status) {
+            // Claim the node and set a task branch
+            flowStore.claimNode(vs.nodeId, session.id)
+            flowStore.setTaskBranch({
+              agentId: session.id,
+              agentName: session.name,
+              nodeId: vs.nodeId,
+              task: vs.status,
+              icon: vs.icon,
+            })
+            appendAgentLog(session.id, `${vs.icon} Moving to ${vs.nodeId.split('__').pop()}: ${vs.status}`)
+          } else {
+            // Release all claims — sprite walks back to desk
+            flowStore.releaseAllByCreature(session.id)
+            flowStore.clearTaskBranch(session.id)
+          }
+          break
+        }
       }
     })
     return off
@@ -157,7 +181,6 @@ export default function AgentChat({ session }: Props) {
           className="agent-input"
           placeholder={placeholder}
           value={input}
-          disabled={agentRunning}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && send()}
         />

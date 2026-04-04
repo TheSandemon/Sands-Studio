@@ -2,19 +2,23 @@
  * Habitat.tsx
  *
  * The Pixi.js creature habitat — a living canvas above the terminals.
- * Each terminal session gets one creature that wanders in its territory,
- * and changes animation state to reflect what the terminal is doing.
+ * Each shell agent gets a sprite that stands by its PC icon.
+ * A Mermaid flowchart workspace renders in the background layer;
+ * the Pixi canvas overlays it with a transparent background so
+ * sprites can physically walk across the diagram.
  */
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as PIXI from 'pixi.js'
 import { useTerminalStore, type TerminalSession, type TerminalState } from '../store/useTerminalStore'
 import { useSettingsStore } from '../store/useSettingsStore'
+import { useFlowchartStore } from '../store/useFlowchartStore'
 import { Creature, type Territory } from '../creatures/Creature'
 import { ComputerIcon } from '../creatures/ComputerIcon'
 import { BUILTIN_CREATURES, EGG_CREATURE } from '../creatures/builtinCreatures'
 import { buildCreatureTextures, loadManifestCreature, type TextureMap, type FpsMap } from '../creatures/spriteSystem'
 import manifest from '../../../public/assets/sprites/manifest.json'
+import FlowchartWorkspace from './FlowchartWorkspace'
 import './Habitat.css'
 
 // ---------------------------------------------------------------------------
@@ -61,7 +65,9 @@ function syncCreatures(
   creatureTypeRef: React.MutableRefObject<Map<string, string>>,
   territoryRef: React.MutableRefObject<Map<string, Territory>>,
   spriteTextureMapsRef: React.MutableRefObject<Record<string, Record<string, PIXI.Texture[]>>>,
-  spriteFpsMapsRef: React.MutableRefObject<Record<string, Record<string, number>>>
+  spriteFpsMapsRef: React.MutableRefObject<Record<string, Record<string, number>>>,
+  flowchartDimensions: { width: number, height: number },
+  flowchartNodes: import('../store/useFlowchartStore').FlowchartNodeCoords[]
 ): void {
   if (!app.stage) return
 
@@ -92,16 +98,40 @@ function syncCreatures(
   const count = terminals.length
   if (count === 0) return
 
-  const W = app.screen.width || 800
-  const H = app.screen.height || 220
+  // Flowchart bounds dictate the world space. We center agents relative to the flow chart bounds horizontally
+  // and place them below it vertically, ensuring they never overlap the flowchart.
+  const chartW = flowchartDimensions.width
+  const chartH = flowchartDimensions.height
+
+  let W = Math.max(800, count * 150)
+  let H = 220
+  
+  // Center this agent area horizontally relative to flowchart
+  let startX = (chartW / 2) - (W / 2)
+  let startY = chartH + 100 // fallback 100px padding below the flowchart
+
+  if (flowchartNodes && flowchartNodes.length > 0) {
+    const terminalHub = flowchartNodes.find((n) => n.id === 'TerminalHub' || n.label.includes('Active Shells'))
+    
+    if (terminalHub) {
+      // The exact bounding box of the Active Shells subgraph
+      // X and Y from Mermaid bounds are centered, so startX is x - width/2
+      startX = terminalHub.x - terminalHub.width / 2
+      W = terminalHub.width
+      // Center them vertically within the hub padding
+      startY = (terminalHub.y - terminalHub.height / 2) + 20
+      H = terminalHub.height - 40
+    }
+  }
+
   const sectionW = W / count
 
   terminals.forEach((t, i) => {
     const territory: Territory = {
-      x: i * sectionW + 4,
-      y: 4,
-      width: sectionW - 8,
-      height: H - 8
+      x: startX + i * sectionW,
+      y: startY,
+      width: sectionW,
+      height: H
     }
     territoryMap.set(t.id, territory)
 
@@ -189,6 +219,7 @@ function syncCreatures(
 // ---------------------------------------------------------------------------
 export default function Habitat() {
   const containerRef = useRef<HTMLDivElement>(null)
+  const cameraRef = useRef<HTMLDivElement>(null)
   const appRef = useRef<PIXI.Application | null>(null)
   const creaturesRef = useRef<Map<string, Creature>>(new Map())
   const iconsRef = useRef<Map<string, ComputerIcon>>(new Map())
@@ -201,11 +232,19 @@ export default function Habitat() {
   const terminals = useTerminalStore((s) => s.terminals)
   const terminalsRef = useRef(terminals)
 
+  const flowchartDimensions = useFlowchartStore((s) => s.dimensions)
+  const flowchartDimensionsRef = useRef(flowchartDimensions)
+
   const creatureSpeed    = useSettingsStore((s) => s.creatureSpeed)
   const showCreatureNames = useSettingsStore((s) => s.showCreatureNames)
+  const habitatBackground = useSettingsStore((s) => s.habitatBackground)
   // Refs so effects can read latest values without stale closures
   const speedRef     = useRef(speedMultiplierFor(creatureSpeed))
   const showNamesRef = useRef(showCreatureNames)
+
+  const [camera, setCamera] = useState({ x: 0, y: 0, scale: 1 })
+  const isDragging = useRef(false)
+  const lastPos = useRef({ x: 0, y: 0 })
 
   // ---------------------------------------------------------------------------
   // Init Pixi app once
@@ -219,18 +258,22 @@ export default function Habitat() {
     appRef.current = app
 
     app.init({
-      background: 0x0d0d1a,
-      resizeTo: el,
+      backgroundAlpha: 0,
+      width: Math.max(window.innerWidth, 1200),
+      height: Math.max(window.innerHeight, 800),
       antialias: false,
       resolution: window.devicePixelRatio ?? 1,
       autoDensity: true
     }).then(async () => {
       if (cancelled) return
 
-      el.appendChild(app.canvas as HTMLCanvasElement)
+      const targetEl = cameraRef.current || el
+      targetEl.appendChild(app.canvas as HTMLCanvasElement)
       ;(app.canvas as HTMLCanvasElement).classList.add('habitat-canvas')
 
-      app.stage.addChild(buildStarfield(app))
+      // Only show starfield when no flowchart is loaded (checked reactively)
+      const starfield = buildStarfield(app)
+      app.stage.addChild(starfield)
 
       // Bake all creature textures (built-ins + egg)
       const renderer = app.renderer as PIXI.Renderer
@@ -258,7 +301,7 @@ export default function Habitat() {
         }
       })
 
-      syncCreatures(app, terminalsRef.current, creaturesRef, iconsRef, bakedRef, creatureTypeRef, territoryRef, spriteTextureMapsRef, spriteFpsMapsRef)
+      syncCreatures(app, terminalsRef.current, creaturesRef, iconsRef, bakedRef, creatureTypeRef, territoryRef, spriteTextureMapsRef, spriteFpsMapsRef, flowchartDimensionsRef.current, useFlowchartStore.getState().nodes)
 
       // Apply initial settings to any creatures that were just created
       applySpeedToAll(creaturesRef, speedRef.current)
@@ -283,11 +326,19 @@ export default function Habitat() {
   // ---------------------------------------------------------------------------
   useEffect(() => {
     terminalsRef.current = terminals
+    flowchartDimensionsRef.current = flowchartDimensions
 
     const app = appRef.current
     if (!app || !bakedRef.current.size) return
 
-    syncCreatures(app, terminals, creaturesRef, iconsRef, bakedRef, creatureTypeRef, territoryRef, spriteTextureMapsRef, spriteFpsMapsRef)
+    // Ensure the WebGL buffer is large enough to contain the flowchart bounds
+    const reqW = Math.max(window.innerWidth, flowchartDimensions.width + 400)
+    const reqH = Math.max(window.innerHeight, flowchartDimensions.height + 400)
+    if (app.screen.width < reqW || app.screen.height < reqH) {
+      app.renderer.resize(reqW, reqH)
+    }
+
+    syncCreatures(app, terminals, creaturesRef, iconsRef, bakedRef, creatureTypeRef, territoryRef, spriteTextureMapsRef, spriteFpsMapsRef, flowchartDimensions, useFlowchartStore.getState().nodes)
 
     // After sync, apply current speed + names to all creatures (including new ones)
     applySpeedToAll(creaturesRef, speedRef.current)
@@ -311,9 +362,113 @@ export default function Habitat() {
     applyNamesToAll(creaturesRef, terminalsRef.current, showCreatureNames)
   }, [showCreatureNames])
 
+  // Determine cwd for flowchart discovery from first terminal's shell config
+  const firstTerminal = terminals[0]
+  const flowchartCwd = firstTerminal?.shellConfig?.cwd || undefined
+  const flowchartVisible = useFlowchartStore((s) => s.visible)
+  const flowchartNodes = useFlowchartStore((s) => s.nodes)
+  const flowchartClaims = useFlowchartStore((s) => s.claims)
 
+  // ── Feed flowchart node coords to claimed creatures ─────────────────────
+  useEffect(() => {
+    if (flowchartNodes.length === 0) return
 
-  return <div ref={containerRef} className="habitat" />
+    for (const [nodeId, creatureId] of Object.entries(flowchartClaims)) {
+      const creature = creaturesRef.current.get(creatureId)
+      if (!creature) continue
+
+      const node = flowchartNodes.find((n) => n.id === nodeId)
+      if (!node) continue
+
+      // Pixi Canvas and Mermaid SVG share the same CSS wrapper,
+      // so local SVG coordinates perfectly map to local Pixi coordinates!
+      creature.setFlowchartTarget(node.x, node.y)
+    }
+
+    // Clear flowchart target for unclaimed creatures
+    for (const [id, creature] of creaturesRef.current) {
+      const isClaimed = Object.values(flowchartClaims).includes(id)
+      if (!isClaimed) {
+        creature.clearFlowchartTarget()
+      }
+    }
+  }, [flowchartNodes, flowchartClaims])
+
+  // ── Pan and Zoom Handlers ───────────────────────────────────────────────
+  const handleWheel = (e: React.WheelEvent) => {
+    if (e.ctrlKey) {
+      e.preventDefault()
+      const zoomSensitivity = 0.002
+      let newScale = camera.scale - e.deltaY * zoomSensitivity
+      newScale = Math.max(0.1, Math.min(newScale, 5))
+
+      const el = containerRef.current
+      if (!el) return
+
+      const rect = el.getBoundingClientRect()
+      const mouseX = e.clientX - rect.left
+      const mouseY = e.clientY - rect.top
+
+      const ds = newScale - camera.scale
+      const tx = camera.x - (mouseX - camera.x) * (ds / camera.scale)
+      const ty = camera.y - (mouseY - camera.y) * (ds / camera.scale)
+
+      setCamera({ x: tx, y: ty, scale: newScale })
+    } else {
+      setCamera(c => ({ ...c, x: c.x - e.deltaX, y: c.y - e.deltaY }))
+    }
+  }
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.button === 1) { // 1 is middle mouse button
+      e.preventDefault()
+      isDragging.current = true
+      lastPos.current = { x: e.clientX, y: e.clientY }
+    }
+  }
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (isDragging.current) {
+      e.preventDefault()
+      const dx = e.clientX - lastPos.current.x
+      const dy = e.clientY - lastPos.current.y
+      setCamera(c => ({ ...c, x: c.x + dx, y: c.y + dy }))
+      lastPos.current = { x: e.clientX, y: e.clientY }
+    }
+  }
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (e.button === 1) {
+      isDragging.current = false
+    }
+  }
+
+  return (
+    <div 
+      ref={containerRef} 
+      className={`habitat bg-${habitatBackground}`}
+      onWheel={handleWheel}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
+      style={{
+        backgroundPosition: `${camera.x * 0.5}px ${camera.y * 0.5}px`
+      }}
+    >
+      <div 
+        ref={cameraRef}
+        className="habitat-camera"
+        style={{ 
+          transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.scale})`,
+          transformOrigin: '0 0'
+        }}
+      >
+        {/* Flowchart renders behind the Pixi canvas */}
+        <FlowchartWorkspace cwd={flowchartCwd} />
+      </div>
+    </div>
+  )
 }
 
 // ---------------------------------------------------------------------------

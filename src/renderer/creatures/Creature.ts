@@ -1,9 +1,9 @@
 /**
  * Creature.ts
  *
- * A single living creature in the habitat.
+ * A shell agent's sprite in the habitat.
  * Wraps a Pixi AnimatedSprite, handles state transitions, and
- * implements wandering movement within an assigned territory.
+ * implements movement between the agent's PC icon and flowchart nodes.
  *
  * Visual state effects use sprite.tint and container.alpha only —
  * no external filter packages needed.
@@ -61,6 +61,21 @@ export class Creature {
 
   private nameLabel: PIXI.Text | null = null
   private computerIcon?: { getAgentStandX: () => number, getAgentStandY: () => number }
+
+  /** When set, the sprite walks to this coordinate (a flowchart node) instead of the desk */
+  private flowchartTargetX: number | null = null
+  private flowchartTargetY: number | null = null
+
+  /** Speech/thought bubble rendered above the sprite */
+  private bubbleContainer: PIXI.Container | null = null
+  private bubbleText: PIXI.Text | null = null
+  private bubbleBg: PIXI.Graphics | null = null
+  private bubbleTimer = 0
+  private bubbleDuration = 0
+  private bubbleOpacity = 0
+
+  /** Current task description shown in the task branch node */
+  currentTask: string | null = null
 
   constructor(
     terminalId: string,
@@ -125,6 +140,23 @@ export class Creature {
     this.computerIcon = icon
   }
 
+  /** Direct the sprite to walk toward a specific flowchart node coordinate. */
+  setFlowchartTarget(x: number, y: number): void {
+    this.flowchartTargetX = x
+    this.flowchartTargetY = y
+    // Immediately update the walk target
+    this.targetX = x
+    this.targetY = y
+  }
+
+  /** Clear the flowchart target so the sprite returns to its desk. */
+  clearFlowchartTarget(): void {
+    if (this.flowchartTargetX === null) return // already cleared
+    this.flowchartTargetX = null
+    this.flowchartTargetY = null
+    this.pickNewTarget() // will snap back to desk
+  }
+
   /** Show or hide a name label below this creature. */
   setName(name: string | undefined, visible: boolean): void {
     if (!name || !visible) {
@@ -151,6 +183,85 @@ export class Creature {
     this.nameLabel.visible = true
   }
 
+  /**
+   * Display a speech/thought bubble above the sprite.
+   * @param icon  Emoji or short icon string (e.g. '🔧', '💭', '⚡')
+   * @param text  Short status text (e.g. 'Fixing routes...')
+   * @param duration  How long to show in ms (0 = persistent until cleared)
+   */
+  setSpeechBubble(icon: string, text: string, duration = 5000): void {
+    this.clearSpeechBubble()
+
+    this.bubbleContainer = new PIXI.Container()
+    this.bubbleContainer.y = -16 // above the sprite
+
+    // Background pill
+    this.bubbleBg = new PIXI.Graphics()
+    this.bubbleContainer.addChild(this.bubbleBg)
+
+    // Text
+    const displayText = icon ? `${icon} ${text}` : text
+    this.bubbleText = new PIXI.Text({
+      text: displayText,
+      style: {
+        fill: '#e0e4ff',
+        fontSize: 8,
+        fontFamily: '"JetBrains Mono", "Fira Code", monospace',
+        wordWrap: true,
+        wordWrapWidth: 100,
+      }
+    } as ConstructorParameters<typeof PIXI.Text>[0])
+    this.bubbleText.x = 6
+    this.bubbleText.y = 3
+
+    // Draw background after text is measured
+    const padX = 8
+    const padY = 4
+    const tw = Math.min(this.bubbleText.width + padX * 2, 120)
+    const th = this.bubbleText.height + padY * 2
+
+    this.bubbleBg
+      .roundRect(0, 0, tw, th, 6)
+      .fill({ color: 0x0d0d1a, alpha: 0.85 })
+      .roundRect(0, 0, tw, th, 6)
+      .stroke({ color: 0x5b90f0, width: 1, alpha: 0.5 })
+
+    // Small triangle pointer
+    this.bubbleBg
+      .moveTo(tw / 2 - 4, th)
+      .lineTo(tw / 2, th + 5)
+      .lineTo(tw / 2 + 4, th)
+      .fill({ color: 0x0d0d1a, alpha: 0.85 })
+
+    // Center the bubble above the sprite
+    this.bubbleContainer.x = 18 - tw / 2
+
+    this.bubbleContainer.addChild(this.bubbleText)
+    this.container.addChild(this.bubbleContainer)
+
+    this.bubbleDuration = duration
+    this.bubbleTimer = 0
+    this.bubbleOpacity = 1
+  }
+
+  /** Clear the speech bubble immediately. */
+  clearSpeechBubble(): void {
+    if (this.bubbleContainer) {
+      this.container.removeChild(this.bubbleContainer)
+      this.bubbleContainer.destroy({ children: true })
+      this.bubbleContainer = null
+      this.bubbleText = null
+      this.bubbleBg = null
+    }
+    this.bubbleTimer = 0
+    this.bubbleDuration = 0
+  }
+
+  /** Set the current task description for the task branch visualization. */
+  setCurrentTask(task: string | null): void {
+    this.currentTask = task
+  }
+
   update(delta: number): void {
     this.idleTimer += delta
 
@@ -160,6 +271,22 @@ export class Creature {
     if (this.idleTimer > interval) {
       this.idleTimer = 0
       this.pickNewTarget()
+    }
+
+    // Animate speech bubble fade-out
+    if (this.bubbleContainer && this.bubbleDuration > 0) {
+      this.bubbleTimer += delta * (1000 / 60) // approximate ms per frame
+      if (this.bubbleTimer >= this.bubbleDuration) {
+        // Fade out over 500ms
+        const fadeStart = this.bubbleDuration
+        const fadeEnd = this.bubbleDuration + 500
+        if (this.bubbleTimer >= fadeEnd) {
+          this.clearSpeechBubble()
+        } else {
+          this.bubbleOpacity = 1 - ((this.bubbleTimer - fadeStart) / 500)
+          this.bubbleContainer.alpha = Math.max(0, this.bubbleOpacity)
+        }
+      }
     }
 
     if (this.state === 'sleep' || this.state === 'hatching') {
@@ -173,7 +300,13 @@ export class Creature {
     const dist = Math.sqrt(dx * dx + dy * dy)
 
     if (dist > 1) {
-      const speed = (SPEED[this.state] ?? 0.7) * this.speedMultiplier
+      let speed = (SPEED[this.state] ?? 0.7) * this.speedMultiplier
+      
+      // Sprint when walking to task nodes far across the map
+      if (this.flowchartTargetX !== null) {
+        speed *= 8.0
+      }
+
       this.container.x += (dx / dist) * speed * delta
       this.container.y += (dy / dist) * speed * delta
 
@@ -207,7 +340,11 @@ export class Creature {
       // Fallback if Pixi bounds computation throws immediately after creation/hatching
     }
 
-    if (this.computerIcon) {
+    if (this.flowchartTargetX !== null && this.flowchartTargetY !== null) {
+      // Walk toward the claimed flowchart node
+      this.targetX = this.flowchartTargetX
+      this.targetY = this.flowchartTargetY
+    } else if (this.computerIcon) {
       // Stand directly beside the computer icon
       this.targetX = this.computerIcon.getAgentStandX()
       this.targetY = this.computerIcon.getAgentStandY()

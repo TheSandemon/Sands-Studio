@@ -619,6 +619,12 @@ export default function ModuleSettingsDialog({ moduleId, onClose }: Props) {
   // Focus trap + Escape
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null
+    return () => {
+      prev?.focus()
+    }
+  }, [])
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (dirty) {
@@ -636,7 +642,6 @@ export default function ModuleSettingsDialog({ moduleId, onClose }: Props) {
     document.addEventListener('keydown', handleKeyDown)
     return () => {
       document.removeEventListener('keydown', handleKeyDown)
-      prev?.focus()
     }
   }, [onClose, dirty, handleSave])
 

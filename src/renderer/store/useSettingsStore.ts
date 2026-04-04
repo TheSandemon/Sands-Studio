@@ -15,6 +15,7 @@ interface SettingsData {
   fontFamily: string
   scrollback: number
   cursorStyle: 'block' | 'underline' | 'bar'
+  bellSound: boolean
 
   // Habitat / Layout
   terminalPanelHeight: number
@@ -22,6 +23,7 @@ interface SettingsData {
   terminalVisible: boolean
   showCreatureNames: boolean
   creatureSpeed: 'slow' | 'normal' | 'fast'
+  habitatBackground: 'default' | 'space' | 'grid' | 'blueprint'
 
   // Agent Defaults
   defaultApiKey: string
@@ -43,11 +45,13 @@ const DEFAULTS: SettingsData = {
   fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
   scrollback: 1000,
   cursorStyle: 'block',
+  bellSound: false,
   terminalPanelHeight: 220,
   habitatVisible: true,
   terminalVisible: true,
   showCreatureNames: false,
   creatureSpeed: 'normal',
+  habitatBackground: 'default',
   defaultApiKey: '',
   defaultModel: '',
   defaultBaseURL: '',

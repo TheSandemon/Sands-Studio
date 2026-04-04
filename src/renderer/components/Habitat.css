@@ -3,6 +3,28 @@
   height: 100%;
   position: relative;
   overflow: hidden;
+  background-color: #0d0d1a;
+}
+
+.habitat.bg-grid {
+  background-image: 
+    linear-gradient(rgba(91, 144, 240, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(91, 144, 240, 0.05) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+.habitat.bg-blueprint {
+  background-color: #0b1a30;
+  background-image: 
+    linear-gradient(rgba(130, 180, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(130, 180, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(rgba(130, 180, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(130, 180, 255, 0.05) 1px, transparent 1px);
+  background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+}
+
+.habitat.bg-space {
+  background-image: radial-gradient(circle at center, rgba(13, 13, 26, 1) 0%, #05050f 100%);
 }
 
 .habitat-canvas {
@@ -12,4 +34,17 @@
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   pointer-events: auto;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+.habitat-camera {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
 }

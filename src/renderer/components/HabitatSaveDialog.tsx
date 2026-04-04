@@ -71,6 +71,10 @@ async function buildShellConfigs(
             apiKey: mem.apiKey,
             baseURL: mem.baseURL,
             model: mem.model,
+            provider: mem.provider,
+            role: mem.role,
+            skills: mem.skills,
+            autonomy: mem.autonomy,
             mcpServers: mem.mcpServers,
             createdAt: mem.createdAt,
             spriteId: mem.spriteId ?? shell.creature?.spriteId ?? undefined,
@@ -98,6 +102,10 @@ async function buildShellConfigs(
             apiKey: mem.apiKey,
             baseURL: mem.baseURL,
             model: mem.model,
+            provider: mem.provider,
+            role: mem.role,
+            skills: mem.skills,
+            autonomy: mem.autonomy,
             mcpServers: mem.mcpServers,
             createdAt: mem.createdAt,
             spriteId: mem.spriteId ?? t.shellConfig?.creature?.spriteId ?? undefined,
@@ -133,6 +141,10 @@ async function buildShellConfigs(
           apiKey: mem.apiKey,
           baseURL: mem.baseURL,
           model: mem.model,
+          provider: mem.provider,
+          role: mem.role,
+          skills: mem.skills,
+          autonomy: mem.autonomy,
           mcpServers: mem.mcpServers,
           createdAt: mem.createdAt,
           spriteId: mem.spriteId ?? t.shellConfig?.creature?.spriteId ?? undefined,
@@ -263,6 +275,7 @@ export default function HabitatSaveDialog({ onClose, initialHabitat }: Props) {
         id: habitatId,
         name: trimmedName,
         description: description.trim(),
+        projectPath: '',
         shells: shells.map((s) => ({ ...s, cwd: s.cwd || '' })),
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -300,6 +313,12 @@ export default function HabitatSaveDialog({ onClose, initialHabitat }: Props) {
   // Escape / Ctrl+S
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null
+    return () => {
+      prev?.focus()
+    }
+  }, [])
+
+  useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { handleClose(); return }
       if (e.key === 's' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); handleSave() }
@@ -307,7 +326,6 @@ export default function HabitatSaveDialog({ onClose, initialHabitat }: Props) {
     document.addEventListener('keydown', handler)
     return () => {
       document.removeEventListener('keydown', handler)
-      prev?.focus()
     }
   }, [handleClose, handleSave])
 

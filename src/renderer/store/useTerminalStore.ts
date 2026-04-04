@@ -42,6 +42,7 @@ export const useTerminalStore = create<TerminalStore>((set) => ({
   terminals: [],
 
   addTerminal(name) {
+    if (useTerminalStore.getState().terminals.length >= 5) return null
     counter++
     const id = `t${Date.now().toString(36)}${counter}`
     const session: TerminalSession = {
@@ -59,6 +60,7 @@ export const useTerminalStore = create<TerminalStore>((set) => ({
   },
 
   addTerminalWithConfig(config, forcedId) {
+    if (useTerminalStore.getState().terminals.length >= 5) return null
     counter++
     const id = forcedId ?? `t${Date.now().toString(36)}${counter}`
     const session: TerminalSession = {

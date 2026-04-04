@@ -25,9 +25,10 @@ interface MenuBarProps {
   onManageHabitats: () => void
   onOpenShellSettings: (sessionId: string) => void
   onOpenDreamState: () => void
+  onEditHabitat: (habitatId: string) => void
 }
 
-export default function MenuBar({ onOpenSettings, onSaveHabitat, onManageHabitats, onOpenShellSettings, onOpenDreamState }: MenuBarProps) {
+export default function MenuBar({ onOpenSettings, onSaveHabitat, onManageHabitats, onOpenShellSettings, onOpenDreamState, onEditHabitat }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const menuBarRef = useRef<HTMLDivElement>(null)
   const addTerminal = useTerminalStore((s) => s.addTerminal)
@@ -79,13 +80,10 @@ export default function MenuBar({ onOpenSettings, onSaveHabitat, onManageHabitat
               </button>
               <button
                 className="menubar-module-cog"
-                title={`Shell settings for ${h.name}`}
+                title={`Edit settings for ${h.name}`}
                 onClick={(e) => {
                   e.stopPropagation()
-                  // Open shell settings for the first shell in this habitat
-                  if (h.shells.length > 0) {
-                    onOpenShellSettings(h.shells[0].id)
-                  }
+                  onEditHabitat(h.id)
                   setOpenMenu(null)
                 }}
               >
@@ -106,15 +104,35 @@ export default function MenuBar({ onOpenSettings, onSaveHabitat, onManageHabitat
   }
 
   // Build menus dynamically so they capture current store state
+  const activeHabitatId = useHabitatStore((s) => s.activeHabitatId)
+  const hasActiveHabitat = !!activeHabitatId
+
   const MENUS: MenuDef[] = [
     {
       id: 'file',
       label: 'File',
       items: [
         {
-          label: 'New Shell',
+          label: 'Deploy Agent',
           shortcut: 'Ctrl+Shift+T',
-          onClick: () => addTerminal(),
+          disabled: !hasActiveHabitat,
+          onClick: () => {
+            const flowStore = useHabitatStore.getState()
+            const activeId = flowStore.activeHabitatId
+            const hab = activeId ? flowStore.getHabitat(activeId) : null
+            if (hab) {
+              const addConf = useTerminalStore.getState().addTerminalWithConfig
+              const id = `t${Date.now().toString(36)}`
+              addConf({
+                id,
+                name: 'Shell',
+                shell: navigator.userAgent.includes('Windows') ? 'powershell.exe' : '/bin/bash',
+                cwd: hab.projectPath,
+              }, id)
+            } else {
+              addTerminal()
+            }
+          },
         },
         { separator: true },
         {

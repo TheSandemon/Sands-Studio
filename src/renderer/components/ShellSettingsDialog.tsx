@@ -10,13 +10,14 @@ interface Props {
   onClose: () => void
 }
 
-type Tab = 'shell' | 'display' | 'environment' | 'creature'
+type Tab = 'shell' | 'display' | 'environment' | 'creature' | 'agent'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'shell', label: 'Shell' },
   { id: 'display', label: 'Display' },
   { id: 'environment', label: 'Environment' },
   { id: 'creature', label: 'Creature' },
+  { id: 'agent', label: 'Agent' },
 ]
 
 const SPRITE_OPTIONS: { id: string; label: string; emoji: string }[] = [
@@ -76,7 +77,18 @@ export default function ShellSettingsDialog({ sessionId, onClose }: Props) {
   const [colorSchemeId, setColorSchemeId] = useState<string>('default-dark')
   const [customColorScheme, setCustomColorScheme] = useState<Partial<ColorScheme>>(existing?.colorScheme ?? {})
   const [bellSound, setBellSound] = useState<boolean | null>(existing?.bellSound ?? null)
+  const [name, setName] = useState(existing?.creature?.name ?? '')
+  const [specialty, setSpecialty] = useState(existing?.creature?.specialty ?? '')
+  const [provider, setProvider] = useState<'anthropic' | 'openai'>(existing?.creature?.provider ?? 'anthropic')
   const [spriteId, setSpriteId] = useState<string | null>(existing?.creature?.spriteId ?? null)
+  const [apiKeyInput, setApiKeyInput] = useState(existing?.creature?.apiKey ? '(Secret Configured)' : '')
+  const [baseURL, setBaseURL] = useState(existing?.creature?.baseURL ?? '')
+  const [model, setModel] = useState(existing?.creature?.model ?? '')
+  const [role, setRole] = useState(existing?.creature?.role ?? '')
+  const [skills, setSkills] = useState(existing?.creature?.skills?.join(', ') ?? '')
+  const [autonomyEnabled, setAutonomyEnabled] = useState(existing?.creature?.autonomy?.enabled ?? false)
+  const [autonomyInterval, setAutonomyInterval] = useState(existing?.creature?.autonomy?.intervalMs ?? 300000)
+  const [autonomyGoal, setAutonomyGoal] = useState(existing?.creature?.autonomy?.goal ?? '')
   const [useGlobalFontSize, setUseGlobalFontSize] = useState(existing?.fontSize === undefined)
   const [useGlobalFontFamily, setUseGlobalFontFamily] = useState(existing?.fontFamily === undefined)
   const [useGlobalScrollback, setUseGlobalScrollback] = useState(existing?.scrollback === undefined)
@@ -110,39 +122,76 @@ export default function ShellSettingsDialog({ sessionId, onClose }: Props) {
       bellSound: useGlobalBellSound ? undefined : (bellSound ?? undefined),
       creature: existing?.creature ? {
         ...existing.creature,
-        // Match old SpriteManagerDialog behavior: explicitly hatching agent on sprite apply
+        name: name || undefined,
+        specialty: specialty || undefined,
+        provider: provider,
         hatched: spriteId ? true : (existing.creature.hatched ?? false),
         spriteId: spriteId ?? undefined,
+        apiKey: apiKeyInput && apiKeyInput !== '(Secret Configured)' ? apiKeyInput : existing.creature.apiKey,
+        baseURL: baseURL || undefined,
+        model: model || undefined,
+        role: role || undefined,
+        skills: skills ? skills.split(',').map(s => s.trim()).filter(Boolean) : undefined,
+        autonomy: autonomyEnabled ? { enabled: true, intervalMs: autonomyInterval, goal: autonomyGoal } : undefined,
       } : {
         id: sessionId,
+        name: name || undefined,
+        specialty: specialty || undefined,
+        provider: provider,
         hatched: spriteId ? true : (session?.hatched ?? false),
         spriteId: spriteId ?? undefined,
+        apiKey: apiKeyInput && apiKeyInput !== '(Secret Configured)' ? apiKeyInput : undefined,
+        baseURL: baseURL || undefined,
+        model: model || undefined,
+        role: role || undefined,
+        skills: skills ? skills.split(',').map(s => s.trim()).filter(Boolean) : undefined,
+        autonomy: autonomyEnabled ? { enabled: true, intervalMs: autonomyInterval, goal: autonomyGoal } : undefined,
       },
     }
-  }, [sessionId, session, shell, args, cwd, env, fontSize, fontFamily, scrollback, cursorStyle, colorSchemeId, customColorScheme, bellSound, spriteId, useGlobalFontSize, useGlobalFontFamily, useGlobalScrollback, useGlobalCursorStyle, useGlobalBellSound, existing])
+  }, [sessionId, session, shell, args, cwd, env, fontSize, fontFamily, scrollback, cursorStyle, colorSchemeId, customColorScheme, bellSound, spriteId, useGlobalFontSize, useGlobalFontFamily, useGlobalScrollback, useGlobalCursorStyle, useGlobalBellSound, existing, name, specialty, provider, apiKeyInput, baseURL, model, role, skills, autonomyEnabled, autonomyInterval, autonomyGoal])
 
   const handleApply = useCallback(() => {
     const config = buildConfig()
     setShellConfig(sessionId, config)
     setDirty(false)
     
-    // Also persist sprite directly into creature memory so it survives app reloads before full Habitat saves
+    // Also persist config directly into creature memory so it survives app reloads before full Habitat saves
     const creatureId = existing?.creature?.id ?? sessionId;
     if (creatureId && window.creatureAPI) {
       window.creatureAPI.loadMemory(creatureId).then(mem => {
         if (mem) {
           mem.spriteId = spriteId ?? undefined;
-          window.creatureAPI.saveMemory(mem.id, mem).catch(e => console.error("Failed to persist sprite:", e));
+          mem.name = name || undefined;
+          mem.specialty = specialty || undefined;
+          mem.provider = provider;
+          if (apiKeyInput && apiKeyInput !== '(Secret Configured)') {
+            mem.apiKey = apiKeyInput;
+          }
+          mem.baseURL = baseURL || undefined;
+          mem.model = model || undefined;
+          mem.role = role || undefined;
+          mem.skills = skills ? skills.split(',').map(s => s.trim()).filter(Boolean) : undefined;
+          mem.autonomy = autonomyEnabled ? { enabled: true, intervalMs: autonomyInterval, goal: autonomyGoal } : undefined;
+          window.creatureAPI.saveMemory(mem.id, mem).catch(e => console.error("Failed to persist config:", e));
         } else {
           window.creatureAPI.saveMemory(creatureId, {
             id: creatureId,
             spriteId: spriteId ?? undefined,
+            name: name || undefined,
+            specialty: specialty || undefined,
+            provider,
+            apiKey: apiKeyInput && apiKeyInput !== '(Secret Configured)' ? apiKeyInput : undefined,
+            baseURL: baseURL || undefined,
+            model: model || undefined,
+            role: role || undefined,
+            skills: skills ? skills.split(',').map(s => s.trim()).filter(Boolean) : undefined,
+            autonomy: autonomyEnabled ? { enabled: true, intervalMs: autonomyInterval, goal: autonomyGoal } : undefined,
             hatched: spriteId ? true : false,
             createdAt: new Date().toISOString(),
             messages: []
-          }).catch(e => console.error("Failed to persist sprite (new memory):", e));
+          }).catch(e => console.error("Failed to persist config (new memory):", e));
         }
-      }).catch(e => console.error("Failed to load memory for sprite persist:", e));
+      }).catch(e => console.error("Failed to load memory for config persist:", e));
     }
   }, [buildConfig, sessionId, existing?.creature?.id, spriteId, setShellConfig])
 
@@ -154,6 +203,12 @@ export default function ShellSettingsDialog({ sessionId, onClose }: Props) {
   // Escape / Ctrl+S
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null
+    return () => {
+      prev?.focus()
+    }
+  }, [])
+
+  useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { handleClose(); return }
       if (e.key === 's' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); handleApply() }
@@ -161,7 +216,6 @@ export default function ShellSettingsDialog({ sessionId, onClose }: Props) {
     document.addEventListener('keydown', handler)
     return () => {
       document.removeEventListener('keydown', handler)
-      prev?.focus()
     }
   }, [handleClose, handleApply])
 
@@ -472,6 +526,129 @@ export default function ShellSettingsDialog({ sessionId, onClose }: Props) {
                 <p className="shsett-hint">This sprite will appear in the Habitat for this agent.</p>
               </div>
             )}
+            {activeTab === 'agent' && (
+              <div className="shsett-tab-content">
+                <div className="shsett-row">
+                  <label className="shsett-label">Name</label>
+                  <input
+                    className="shsett-input"
+                    type="text"
+                    value={name}
+                    placeholder="e.g. Ralph"
+                    onChange={(e) => { setName(e.target.value); markDirty() }}
+                  />
+                </div>
+                <div className="shsett-row">
+                  <label className="shsett-label">Specialty (Hatching)</label>
+                  <input
+                    className="shsett-input"
+                    type="text"
+                    value={specialty}
+                    placeholder="e.g. Loops"
+                    onChange={(e) => { setSpecialty(e.target.value); markDirty() }}
+                  />
+                </div>
+                <div className="shsett-row">
+                  <label className="shsett-label">Role / Persona (System)</label>
+                  <input
+                    className="shsett-input"
+                    type="text"
+                    value={role}
+                    placeholder="e.g. Frontend Engineer, DevOps, QA Lead"
+                    onChange={(e) => { setRole(e.target.value); markDirty() }}
+                  />
+                </div>
+                <div className="shsett-row">
+                  <label className="shsett-label">Skills</label>
+                  <input
+                    className="shsett-input"
+                    type="text"
+                    value={skills}
+                    placeholder="React, TypeScript, CSS, Testing (comma-separated)"
+                    onChange={(e) => { setSkills(e.target.value); markDirty() }}
+                  />
+                </div>
+                <div className="shsett-row" style={{ borderTop: '1px solid rgba(91,144,240,0.15)', paddingTop: 12, marginTop: 8 }}>
+                  <label className="shsett-label">Autonomy</label>
+                  <label className="shsett-toggle-label" style={{ marginBottom: 8 }}>
+                    <input
+                      type="checkbox"
+                      checked={autonomyEnabled}
+                      onChange={(e) => { setAutonomyEnabled(e.target.checked); markDirty() }}
+                    />
+                    Enable Autonomous Mode
+                  </label>
+                  {autonomyEnabled && (
+                    <>
+                      <div style={{ marginBottom: 8 }}>
+                        <label className="shsett-label" style={{ fontSize: 10 }}>Wake Interval (minutes)</label>
+                        <input
+                          className="shsett-input shsett-input-number"
+                          type="number"
+                          min={1}
+                          max={1440}
+                          value={Math.round(autonomyInterval / 60000)}
+                          onChange={(e) => { setAutonomyInterval(Number(e.target.value) * 60000); markDirty() }}
+                        />
+                      </div>
+                      <div>
+                        <label className="shsett-label" style={{ fontSize: 10 }}>Goal</label>
+                        <textarea
+                          className="shsett-input"
+                          rows={3}
+                          value={autonomyGoal}
+                          placeholder="Describe the overarching goal this agent should pursue when it wakes up…"
+                          onChange={(e) => { setAutonomyGoal(e.target.value); markDirty() }}
+                          style={{ resize: 'vertical', minHeight: 60 }}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="shsett-row" style={{ borderTop: '1px solid rgba(91,144,240,0.15)', paddingTop: 12, marginTop: 8 }}>
+                  <label className="shsett-label">Provider Format</label>
+                  <select
+                    className="shsett-select"
+                    value={provider}
+                    onChange={(e) => { setProvider(e.target.value as 'anthropic' | 'openai'); markDirty() }}
+                  >
+                    <option value="anthropic">Anthropic</option>
+                    <option value="openai">OpenAI (OpenRouter, Gemini, Groq, local)</option>
+                  </select>
+                </div>
+                <div className="shsett-row">
+                  <label className="shsett-label">API Key</label>
+                  <input
+                    className="shsett-input"
+                    type="password"
+                    value={apiKeyInput}
+                    placeholder="sk-ant-..."
+                    onChange={(e) => { setApiKeyInput(e.target.value); markDirty() }}
+                  />
+                </div>
+                <div className="shsett-row">
+                  <label className="shsett-label">Base URL</label>
+                  <input
+                    className="shsett-input"
+                    type="text"
+                    value={baseURL}
+                    placeholder="https://api.anthropic.com"
+                    onChange={(e) => { setBaseURL(e.target.value); markDirty() }}
+                  />
+                </div>
+                <div className="shsett-row">
+                  <label className="shsett-label">Model Name</label>
+                  <input
+                    className="shsett-input"
+                    type="text"
+                    value={model}
+                    placeholder="claude-3-5-sonnet-20240620"
+                    onChange={(e) => { setModel(e.target.value); markDirty() }}
+                  />
+                </div>
+                <p className="shsett-hint">Role and skills shape the agent's system prompt. Autonomy lets the agent wake at intervals to pursue its goal.</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -484,7 +661,7 @@ export default function ShellSettingsDialog({ sessionId, onClose }: Props) {
               onClick={handleApply}
               disabled={!dirty}
             >
-              Apply
+              Apply Changes
             </button>
           </div>
         </div>
