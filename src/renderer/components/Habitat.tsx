@@ -86,29 +86,23 @@ function syncCreatures(
   const count = terminals.length
   if (count === 0) return
 
-  // flowchart node coords are in SVG-local (camera-relative) space.
-  // PIXI canvas is in the outer non-transformed div, so apply cam transform:
-  //   pixiCoord = localCoord * scale + pan
-  const toPixi = (local: number, pan: number) => local * cam.scale + pan
-
   let W = Math.max(800, count * 150)
   let H = 220
 
-  // Center this agent area horizontally relative to flowchart
-  let startX = toPixi((flowchartDimensions.width / 2) - (W / 2), cam.x)
-  let startY = toPixi(flowchartDimensions.height + 100, cam.y)
+  // Fallback: center of flowchart dimensions
+  let startX = (flowchartDimensions.width / 2) - (W / 2)
+  let startY = flowchartDimensions.height + 100
 
   if (flowchartNodes && flowchartNodes.length > 0) {
     const terminalHub = flowchartNodes.find((n) => n.id === 'TerminalHub' || n.label.includes('Active Shells'))
 
     if (terminalHub) {
-      // Convert local SVG coords to PIXI canvas space
-      const hubLocalX = terminalHub.x - terminalHub.width / 2
-      const hubLocalY = (terminalHub.y - terminalHub.height / 2) + 20
-      startX = toPixi(hubLocalX, cam.x)
-      startY = toPixi(hubLocalY, cam.y)
-      W = terminalHub.width * cam.scale
-      H = (terminalHub.height - 40) * cam.scale
+      // node.x/y are already in camera-local (SVG) space.
+      // Canvas is also in the camera div => same coordinate space, no transform needed.
+      startX = terminalHub.x - terminalHub.width / 2
+      W = terminalHub.width
+      startY = (terminalHub.y - terminalHub.height / 2) + 20
+      H = terminalHub.height - 40
     }
   }
 
@@ -255,14 +249,9 @@ export default function Habitat() {
     }).then(async () => {
       if (cancelled) return
 
-      const targetEl = containerRef.current || el
+      const targetEl = cameraRef.current || el
       targetEl.appendChild(app.canvas as HTMLCanvasElement)
       ;(app.canvas as HTMLCanvasElement).classList.add('habitat-canvas')
-      // Position canvas absolutely so it fills the container but sits behind the camera div
-      const canvas = app.canvas as HTMLCanvasElement
-      canvas.style.position = 'absolute'
-      canvas.style.top = '0'
-      canvas.style.left = '0'
 
       // Bake all creature textures (built-ins + egg)
       const renderer = app.renderer as PIXI.Renderer
@@ -310,7 +299,7 @@ export default function Habitat() {
         oldDestroy(...args)
       }
 
-      syncCreatures(app, terminalsRef.current, creaturesRef, iconsRef, bakedRef, creatureTypeRef, territoryRef, spriteTextureMapsRef, spriteFpsMapsRef, flowchartDimensionsRef.current, useFlowchartStore.getState().nodes, cameraRef2.current)
+      syncCreatures(app, terminalsRef.current, creaturesRef, iconsRef, bakedRef, creatureTypeRef, territoryRef, spriteTextureMapsRef, spriteFpsMapsRef, flowchartDimensionsRef.current, useFlowchartStore.getState().nodes)
 
       // Apply initial settings to any creatures that were just created
       applySpeedToAll(creaturesRef, speedRef.current)
@@ -345,12 +334,16 @@ export default function Habitat() {
     const app = appRef.current
     if (!app || !bakedRef.current.size) return
 
-    syncCreatures(app, terminals, creaturesRef, iconsRef, bakedRef, creatureTypeRef, territoryRef, spriteTextureMapsRef, spriteFpsMapsRef, flowchartDimensions, useFlowchartStore.getState().nodes, cameraRef2.current)
+    syncCreatures(app, terminals, creaturesRef, iconsRef, bakedRef, creatureTypeRef, territoryRef, spriteTextureMapsRef, spriteFpsMapsRef, flowchartDimensions, useFlowchartStore.getState().nodes)
 
     // After sync, apply current speed + names to all creatures (including new ones)
     applySpeedToAll(creaturesRef, speedRef.current)
     applyNamesToAll(creaturesRef, terminals, showNamesRef.current)
-  }, [terminals])
+  // Note: camera intentionally NOT in deps — icon positions only change when the
+  // flowchart graph re-renders (flowchartNodes change) or terminals change.
+  // Camera changes are handled by the claims effect below which re-targets walking agents.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [terminals, flowchartDimensions])
 
   // ---------------------------------------------------------------------------
   // Creature speed setting
@@ -376,19 +369,10 @@ export default function Habitat() {
   const flowchartNodes = useFlowchartStore((s) => s.nodes)
   const flowchartClaims = useFlowchartStore((s) => s.claims)
 
-  // ── Feed flowchart node coords to claimed creatures ─────────────────────
+  // ── Feed flowchart node coords to claimed creatures (re-runs on camera change for live tracking) ──
   useEffect(() => {
     if (flowchartNodes.length === 0) return
 
-    const cam = cameraRef2.current
-    const containerEl = containerRef.current
-    if (!containerEl) return
-
-    // Flowchart SVG container == cameraRef div (same CSS transform parent).
-    // The SVG node coords are in the camera's local coordinate space (before CSS transform).
-    // PIXI canvas sits in the outer non-transformed containerRef, so we must map:
-    //   pixiX = nodeLocalX * scale + panX
-    //   pixiY = nodeLocalY * scale + panY
     for (const [nodeId, creatureId] of Object.entries(flowchartClaims)) {
       const creature = creaturesRef.current.get(creatureId)
       if (!creature) continue
@@ -396,10 +380,8 @@ export default function Habitat() {
       const node = flowchartNodes.find((n) => n.id === nodeId)
       if (!node) continue
 
-      // node.x/y are local coords within the svg container (no camera transform applied)
-      const pixiX = node.x * cam.scale + cam.x
-      const pixiY = node.y * cam.scale + cam.y
-      creature.setFlowchartTarget(pixiX, pixiY)
+      // Canvas and SVG are both inside the camera div => same local coordinate space
+      creature.setFlowchartTarget(node.x, node.y)
     }
 
     // Clear flowchart target for unclaimed creatures
@@ -409,7 +391,7 @@ export default function Habitat() {
         creature.clearFlowchartTarget()
       }
     }
-  }, [flowchartNodes, flowchartClaims])
+  }, [flowchartNodes, flowchartClaims, camera])
 
   // ── Pan and Zoom Handlers ───────────────────────────────────────────────
   const handleWheel = (e: React.WheelEvent) => {

@@ -103,16 +103,22 @@ export default function AgentChat({ session }: Props) {
           const flowStore = useFlowchartStore.getState()
 
           if (vs.nodeId && vs.status) {
-            // Claim the node and set a task branch
-            flowStore.claimNode(vs.nodeId, session.id)
-            flowStore.setTaskBranch({
-              agentId: session.id,
-              agentName: session.name,
-              nodeId: vs.nodeId,
-              task: vs.status,
-              icon: vs.icon,
-            })
-            appendAgentLog(session.id, `${vs.icon} Moving to ${vs.nodeId.split('__').pop()}: ${vs.status}`)
+            // Only claim+branch for real file path nodes (not TerminalHub home base)
+            const isFileNode = vs.nodeId !== 'TerminalHub' && vs.nodeId.includes('__')
+            if (isFileNode) {
+              flowStore.claimNode(vs.nodeId, session.id)
+              flowStore.setTaskBranch({
+                agentId: session.id,
+                agentName: session.name,
+                nodeId: vs.nodeId,
+                task: vs.status,
+                icon: vs.icon,
+              })
+              appendAgentLog(session.id, `${vs.icon} Moving to ${vs.nodeId.split('__').pop()}: ${vs.status}`)
+            } else {
+              // Home base / Initializing — no diagram change, just log
+              appendAgentLog(session.id, `${vs.icon} ${vs.status}`)
+            }
           } else {
             // Release all claims — sprite walks back to desk
             flowStore.releaseAllByCreature(session.id)
