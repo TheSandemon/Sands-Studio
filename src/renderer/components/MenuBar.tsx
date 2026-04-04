@@ -26,9 +26,11 @@ interface MenuBarProps {
   onOpenShellSettings: (sessionId: string) => void
   onOpenDreamState: () => void
   onEditHabitat: (habitatId: string) => void
+  onOpenAgentRoster: () => void
+  onSaveAgent: (sessionId: string) => void
 }
 
-export default function MenuBar({ onOpenSettings, onSaveHabitat, onManageHabitats, onOpenShellSettings, onOpenDreamState, onEditHabitat }: MenuBarProps) {
+export default function MenuBar({ onOpenSettings, onSaveHabitat, onManageHabitats, onOpenShellSettings, onOpenDreamState, onEditHabitat, onOpenAgentRoster, onSaveAgent }: MenuBarProps) {
   const [openMenu, setOpenMenu] = useState<string | null>(null)
   const menuBarRef = useRef<HTMLDivElement>(null)
   const addTerminal = useTerminalStore((s) => s.addTerminal)
@@ -229,6 +231,21 @@ export default function MenuBar({ onOpenSettings, onSaveHabitat, onManageHabitat
       id: 'habitats',
       label: 'Habitats',
       items: HABITATS_ITEMS,
+    },
+    {
+      id: 'agents',
+      label: 'Agents',
+      items: [
+        {
+          label: 'Open Agent Roster\u2026',
+          onClick: onOpenAgentRoster,
+        },
+        { separator: true },
+        ...terminals.map((t) => ({
+          label: `Save "${t.creatureName || t.name}"\u2026`,
+          onClick: () => onSaveAgent(t.id),
+        })),
+      ],
     },
     {
       id: 'dreamstate',

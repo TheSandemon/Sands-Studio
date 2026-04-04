@@ -1,0 +1,22 @@
+[   15200ms] [ERROR] Warning: The result of getSnapshot should be cached to avoid an infinite loop%s 
+    at HabitatSaveDialog (http://localhost:5173/components/HabitatSaveDialog.tsx:34:45)
+    at ErrorBoundary (http://localhost:5173/App.tsx:37:1)
+    at App (http://localhost:5173/App.tsx:82:21) @ http://localhost:5173/@fs/C:/Users/Sand/Desktop/Coding/Sands%20Studio/node_modules/.vite/deps/chunk-TYILIMWK.js?v=3cf099fe:520
+[   15222ms] Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
+    at checkForNestedUpdates (http://localhost:5173/@fs/C:/Users/Sand/Desktop/Coding/Sands%20Studio/node_modules/.vite/deps/chunk-TYILIMWK.js?v=3cf099fe:19659:19)
+    at scheduleUpdateOnFiber (http://localhost:5173/@fs/C:/Users/Sand/Desktop/Coding/Sands%20Studio/node_modules/.vite/deps/chunk-TYILIMWK.js?v=3cf099fe:18533:11)
+    at forceStoreRerender (http://localhost:5173/@fs/C:/Users/Sand/Desktop/Coding/Sands%20Studio/node_modules/.vite/deps/chunk-TYILIMWK.js?v=3cf099fe:11999:13)
+    at updateStoreInstance (http://localhost:5173/@fs/C:/Users/Sand/Desktop/Coding/Sands%20Studio/node_modules/.vite/deps/chunk-TYILIMWK.js?v=3cf099fe:11975:13)
+    at commitHookEffectListMount (http://localhost:5173/@fs/C:/Users/Sand/Desktop/Coding/Sands%20Studio/node_modules/.vite/deps/chunk-TYILIMWK.js?v=3cf099fe:16915:34)
+    at commitPassiveMountOnFiber (http://localhost:5173/@fs/C:/Users/Sand/Desktop/Coding/Sands%20Studio/node_modules/.vite/deps/chunk-TYILIMWK.js?v=3cf099fe:18156:19)
+    at commitPassiveMountEffects_complete (http://localhost:5173/@fs/C:/Users/Sand/Desktop/Coding/Sands%20Studio/node_modules/.vite/deps/chunk-TYILIMWK.js?v=3cf099fe:18129:17)
+    at commitPassiveMountEffects_begin (http://localhost:5173/@fs/C:/Users/Sand/Desktop/Coding/Sands%20Studio/node_modules/.vite/deps/chunk-TYILIMWK.js?v=3cf099fe:18119:15)
+    at commitPassiveMountEffects (http://localhost:5173/@fs/C:/Users/Sand/Desktop/Coding/Sands%20Studio/node_modules/.vite/deps/chunk-TYILIMWK.js?v=3cf099fe:18109:11)
+    at flushPassiveEffectsImpl (http://localhost:5173/@fs/C:/Users/Sand/Desktop/Coding/Sands%20Studio/node_modules/.vite/deps/chunk-TYILIMWK.js?v=3cf099fe:19490:11)
+[   15224ms] [ERROR] The above error occurred in the <HabitatSaveDialog> component:
+
+    at HabitatSaveDialog (http://localhost:5173/components/HabitatSaveDialog.tsx:34:45)
+    at ErrorBoundary (http://localhost:5173/App.tsx:37:1)
+    at App (http://localhost:5173/App.tsx:82:21)
+
+React will try to recreate this component tree from scratch using the error boundary you provided, ErrorBoundary. @ http://localhost:5173/@fs/C:/Users/Sand/Desktop/Coding/Sands%20Studio/node_modules/.vite/deps/chunk-TYILIMWK.js?v=3cf099fe:14031

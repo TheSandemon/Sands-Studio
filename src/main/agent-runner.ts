@@ -322,8 +322,8 @@ async function startAgent(
     const sanitizeId = (id: string) => id.replace(/[^a-zA-Z0-9_]/g, '_')
     sendEvent(win, terminalId, 'visual_status', {
       status: 'Initializing...',
-      icon: '📡',
-      nodeId: `terminal_${sanitizeId(terminalId)}`
+      icon: '\ud83d\udce1',
+      nodeId: 'TerminalHub'
     })
 
     const isNewSession = !activeSessions.has(terminalId)
@@ -552,7 +552,12 @@ async function startAgent(
           } else if (toolBlock.name === 'set_agent_status') {
             const { status, icon, focusFile } = toolBlock.input as { status: string; icon: string; focusFile?: string }
             const cwd = terminalCwd.get(terminalId) ?? process.cwd()
-            const nodeId = focusFile ? filePathToNodeId(focusFile, cwd) : null
+            let nodeId = null
+            if (focusFile) {
+              // Resolve relative to where terminal is, but calculate node ID relative to global project root
+              const absoluteFocusFile = path.resolve(cwd, focusFile)
+              nodeId = filePathToNodeId(absoluteFocusFile, process.cwd())
+            }
             sendEvent(win, terminalId, 'visual_status', { status, icon, nodeId })
             toolResults.push({
               toolCallId: toolBlock.id,

@@ -13,6 +13,8 @@ import ShellSettingsDialog from './components/ShellSettingsDialog'
 
 import DreamStatePanel from './components/DreamStatePanel'
 import AgentStatusPanel from './components/AgentStatusPanel'
+import AgentBrowserDialog from './components/AgentBrowserDialog'
+import AgentSaveDialog from './components/AgentSaveDialog'
 import CommsPanel from './components/CommsPanel'
 import CollisionToast from './components/CollisionToast'
 import { useTerminalStore } from './store/useTerminalStore'
@@ -77,6 +79,8 @@ export default function App() {
   const [habitatManageOpen, setHabitatManageOpen] = useState(false)
   const [shellSettingsSessionId, setShellSettingsSessionId] = useState<string | null>(null)
   const [dreamStateOpen, setDreamStateOpen] = useState(false)
+  const [agentRosterOpen, setAgentRosterOpen] = useState(false)
+  const [agentSaveSessionId, setAgentSaveSessionId] = useState<string | null>(null)
 
   // Start the autonomy manager on mount
   useEffect(() => {
@@ -233,6 +237,8 @@ export default function App() {
             onManageHabitats={() => setHabitatManageOpen(true)}
             onOpenShellSettings={(sessionId) => setShellSettingsSessionId(sessionId)}
             onOpenDreamState={() => setDreamStateOpen(true)}
+            onOpenAgentRoster={() => setAgentRosterOpen(true)}
+            onSaveAgent={(sessionId) => setAgentSaveSessionId(sessionId)}
             onEditHabitat={(id) => {
               setHabitatSaveId(id)
               setHabitatSaveOpen(true)
@@ -407,6 +413,37 @@ export default function App() {
           <DreamStatePanel onClose={() => setDreamStateOpen(false)} />
         </ErrorBoundary>
       )}
+
+      {agentRosterOpen && (
+        <ErrorBoundary label="AgentBrowserDialog">
+          <AgentBrowserDialog
+            targetShellIndex={0}
+            onClose={() => setAgentRosterOpen(false)}
+          />
+        </ErrorBoundary>
+      )}
+
+      {agentSaveSessionId && (() => {
+        const session = terminals.find(t => t.id === agentSaveSessionId)
+        if (!session) return null
+        const shellIndex = terminals.indexOf(session)
+        const creature = session.shellConfig?.creature ?? {
+          id: session.id,
+          hatched: session.hatched ?? false,
+          name: session.creatureName,
+          spriteId: session.shellConfig?.creature?.spriteId,
+        }
+        return (
+          <ErrorBoundary label="AgentSaveDialog">
+            <AgentSaveDialog
+              shellIndex={shellIndex}
+              creatureId={session.id}
+              creature={creature as any}
+              onClose={() => setAgentSaveSessionId(null)}
+            />
+          </ErrorBoundary>
+        )
+      })()}
 
 
     </ErrorBoundary>

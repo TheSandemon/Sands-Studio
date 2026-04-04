@@ -25,6 +25,16 @@
   background: radial-gradient(circle at center, rgba(13, 13, 26, 0.6) 0%, transparent 80%);
 }
 
+/* Push subgraph cluster label ("Active Shells") to the bottom of its box */
+.flowchart-svg-container .cluster-label {
+  transform: translateY(calc(100% - 1.4em));
+}
+.flowchart-svg-container .cluster-label .nodeLabel {
+  font-size: 10px;
+  opacity: 0.55;
+  letter-spacing: 0.06em;
+}
+
 /* Mermaid SVG theming tweaks */
 .flowchart-svg-container svg {
   max-width: none !important;

@@ -38,20 +38,7 @@ function speedMultiplierFor(speed: 'slow' | 'normal' | 'fast'): number {
   return speed === 'slow' ? 0.4 : speed === 'fast' ? 2.0 : 1.0
 }
 
-// ---------------------------------------------------------------------------
-// Starfield background helper
-// ---------------------------------------------------------------------------
-function buildStarfield(app: PIXI.Application, count = 120): PIXI.Graphics {
-  const g = new PIXI.Graphics()
-  for (let i = 0; i < count; i++) {
-    const x = Math.random() * app.screen.width
-    const y = Math.random() * app.screen.height
-    const r = Math.random() < 0.15 ? 1.5 : 0.8
-    const alpha = 0.2 + Math.random() * 0.6
-    g.circle(x, y, r).fill({ color: 0xffffff, alpha })
-  }
-  return g
-}
+
 
 // ---------------------------------------------------------------------------
 // Standalone creature sync — called from both the init .then() and useEffect
@@ -67,7 +54,8 @@ function syncCreatures(
   spriteTextureMapsRef: React.MutableRefObject<Record<string, Record<string, PIXI.Texture[]>>>,
   spriteFpsMapsRef: React.MutableRefObject<Record<string, Record<string, number>>>,
   flowchartDimensions: { width: number, height: number },
-  flowchartNodes: import('../store/useFlowchartStore').FlowchartNodeCoords[]
+  flowchartNodes: import('../store/useFlowchartStore').FlowchartNodeCoords[],
+  cam: { x: number; y: number; scale: number } = { x: 0, y: 0, scale: 1 }
 ): void {
   if (!app.stage) return
 
@@ -98,29 +86,29 @@ function syncCreatures(
   const count = terminals.length
   if (count === 0) return
 
-  // Flowchart bounds dictate the world space. We center agents relative to the flow chart bounds horizontally
-  // and place them below it vertically, ensuring they never overlap the flowchart.
-  const chartW = flowchartDimensions.width
-  const chartH = flowchartDimensions.height
+  // flowchart node coords are in SVG-local (camera-relative) space.
+  // PIXI canvas is in the outer non-transformed div, so apply cam transform:
+  //   pixiCoord = localCoord * scale + pan
+  const toPixi = (local: number, pan: number) => local * cam.scale + pan
 
   let W = Math.max(800, count * 150)
   let H = 220
-  
+
   // Center this agent area horizontally relative to flowchart
-  let startX = (chartW / 2) - (W / 2)
-  let startY = chartH + 100 // fallback 100px padding below the flowchart
+  let startX = toPixi((flowchartDimensions.width / 2) - (W / 2), cam.x)
+  let startY = toPixi(flowchartDimensions.height + 100, cam.y)
 
   if (flowchartNodes && flowchartNodes.length > 0) {
     const terminalHub = flowchartNodes.find((n) => n.id === 'TerminalHub' || n.label.includes('Active Shells'))
-    
+
     if (terminalHub) {
-      // The exact bounding box of the Active Shells subgraph
-      // X and Y from Mermaid bounds are centered, so startX is x - width/2
-      startX = terminalHub.x - terminalHub.width / 2
-      W = terminalHub.width
-      // Center them vertically within the hub padding
-      startY = (terminalHub.y - terminalHub.height / 2) + 20
-      H = terminalHub.height - 40
+      // Convert local SVG coords to PIXI canvas space
+      const hubLocalX = terminalHub.x - terminalHub.width / 2
+      const hubLocalY = (terminalHub.y - terminalHub.height / 2) + 20
+      startX = toPixi(hubLocalX, cam.x)
+      startY = toPixi(hubLocalY, cam.y)
+      W = terminalHub.width * cam.scale
+      H = (terminalHub.height - 40) * cam.scale
     }
   }
 
@@ -243,6 +231,7 @@ export default function Habitat() {
   const showNamesRef = useRef(showCreatureNames)
 
   const [camera, setCamera] = useState({ x: 0, y: 0, scale: 1 })
+  const cameraRef2 = useRef({ x: 0, y: 0, scale: 1 })  // mirror for use in effects
   const isDragging = useRef(false)
   const lastPos = useRef({ x: 0, y: 0 })
 
@@ -259,21 +248,21 @@ export default function Habitat() {
 
     app.init({
       backgroundAlpha: 0,
-      width: Math.max(window.innerWidth, 1200),
-      height: Math.max(window.innerHeight, 800),
+      resizeTo: el,
       antialias: false,
       resolution: window.devicePixelRatio ?? 1,
       autoDensity: true
     }).then(async () => {
       if (cancelled) return
 
-      const targetEl = cameraRef.current || el
+      const targetEl = containerRef.current || el
       targetEl.appendChild(app.canvas as HTMLCanvasElement)
       ;(app.canvas as HTMLCanvasElement).classList.add('habitat-canvas')
-
-      // Only show starfield when no flowchart is loaded (checked reactively)
-      const starfield = buildStarfield(app)
-      app.stage.addChild(starfield)
+      // Position canvas absolutely so it fills the container but sits behind the camera div
+      const canvas = app.canvas as HTMLCanvasElement
+      canvas.style.position = 'absolute'
+      canvas.style.top = '0'
+      canvas.style.left = '0'
 
       // Bake all creature textures (built-ins + egg)
       const renderer = app.renderer as PIXI.Renderer
@@ -295,13 +284,33 @@ export default function Habitat() {
       spriteTextureMapsRef.current = textureMaps
       spriteFpsMapsRef.current = fpsMaps
 
+      // Setup robust resize observer to prevent Pixi canvas squishing
+      const ro = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          if (entry.target === el) {
+            const { width, height } = entry.contentRect
+            if (width > 0 && height > 0) {
+              app.renderer.resize(width, height)
+            }
+          }
+        }
+      })
+      ro.observe(el)
+
       app.ticker.add((ticker) => {
         for (const creature of creaturesRef.current.values()) {
           creature.update(ticker.deltaTime)
         }
       })
 
-      syncCreatures(app, terminalsRef.current, creaturesRef, iconsRef, bakedRef, creatureTypeRef, territoryRef, spriteTextureMapsRef, spriteFpsMapsRef, flowchartDimensionsRef.current, useFlowchartStore.getState().nodes)
+      // Cleanup
+      const oldDestroy = app.destroy.bind(app)
+      app.destroy = (...args: any[]) => {
+        ro.disconnect()
+        oldDestroy(...args)
+      }
+
+      syncCreatures(app, terminalsRef.current, creaturesRef, iconsRef, bakedRef, creatureTypeRef, territoryRef, spriteTextureMapsRef, spriteFpsMapsRef, flowchartDimensionsRef.current, useFlowchartStore.getState().nodes, cameraRef2.current)
 
       // Apply initial settings to any creatures that were just created
       applySpeedToAll(creaturesRef, speedRef.current)
@@ -321,6 +330,11 @@ export default function Habitat() {
     }
   }, [])
 
+  // Sync camera state into a ref so effects can read it without stale closure
+  useEffect(() => {
+    cameraRef2.current = camera
+  }, [camera])
+
   // ---------------------------------------------------------------------------
   // Keep terminalsRef current + sync creatures when terminals change
   // ---------------------------------------------------------------------------
@@ -331,14 +345,7 @@ export default function Habitat() {
     const app = appRef.current
     if (!app || !bakedRef.current.size) return
 
-    // Ensure the WebGL buffer is large enough to contain the flowchart bounds
-    const reqW = Math.max(window.innerWidth, flowchartDimensions.width + 400)
-    const reqH = Math.max(window.innerHeight, flowchartDimensions.height + 400)
-    if (app.screen.width < reqW || app.screen.height < reqH) {
-      app.renderer.resize(reqW, reqH)
-    }
-
-    syncCreatures(app, terminals, creaturesRef, iconsRef, bakedRef, creatureTypeRef, territoryRef, spriteTextureMapsRef, spriteFpsMapsRef, flowchartDimensions, useFlowchartStore.getState().nodes)
+    syncCreatures(app, terminals, creaturesRef, iconsRef, bakedRef, creatureTypeRef, territoryRef, spriteTextureMapsRef, spriteFpsMapsRef, flowchartDimensions, useFlowchartStore.getState().nodes, cameraRef2.current)
 
     // After sync, apply current speed + names to all creatures (including new ones)
     applySpeedToAll(creaturesRef, speedRef.current)
@@ -373,6 +380,15 @@ export default function Habitat() {
   useEffect(() => {
     if (flowchartNodes.length === 0) return
 
+    const cam = cameraRef2.current
+    const containerEl = containerRef.current
+    if (!containerEl) return
+
+    // Flowchart SVG container == cameraRef div (same CSS transform parent).
+    // The SVG node coords are in the camera's local coordinate space (before CSS transform).
+    // PIXI canvas sits in the outer non-transformed containerRef, so we must map:
+    //   pixiX = nodeLocalX * scale + panX
+    //   pixiY = nodeLocalY * scale + panY
     for (const [nodeId, creatureId] of Object.entries(flowchartClaims)) {
       const creature = creaturesRef.current.get(creatureId)
       if (!creature) continue
@@ -380,9 +396,10 @@ export default function Habitat() {
       const node = flowchartNodes.find((n) => n.id === nodeId)
       if (!node) continue
 
-      // Pixi Canvas and Mermaid SVG share the same CSS wrapper,
-      // so local SVG coordinates perfectly map to local Pixi coordinates!
-      creature.setFlowchartTarget(node.x, node.y)
+      // node.x/y are local coords within the svg container (no camera transform applied)
+      const pixiX = node.x * cam.scale + cam.x
+      const pixiY = node.y * cam.scale + cam.y
+      creature.setFlowchartTarget(pixiX, pixiY)
     }
 
     // Clear flowchart target for unclaimed creatures

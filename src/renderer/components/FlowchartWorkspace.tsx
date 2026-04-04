@@ -181,8 +181,14 @@ export default function FlowchartWorkspace({ cwd }: Props) {
     const coords: FlowchartNodeCoords[] = []
 
     nodeGroups.forEach((group) => {
-      const id = group.id || (group as HTMLElement).dataset?.id || ''
+      let id = group.id || (group as HTMLElement).dataset?.id || ''
       if (!id) return
+
+      // Mermaid wraps node IDs: "flowchart-myNodeId-123" → extract "myNodeId"
+      const mermaidMatch = id.match(/^flowchart-(.+)-\d+$/)
+      if (mermaidMatch) {
+        id = mermaidMatch[1]
+      }
 
       const rect = group.getBoundingClientRect()
       const isCluster = group.classList.contains('cluster')
@@ -212,9 +218,11 @@ export default function FlowchartWorkspace({ cwd }: Props) {
     })
 
     for (const [nodeId] of Object.entries(claims)) {
-      const nodeEl = container.querySelector(`#${CSS.escape(nodeId)}`)
+      // Mermaid wraps IDs as "flowchart-<nodeId>-<N>", so match via contains
+      const nodeEl = container.querySelector(`[id*="${CSS.escape(nodeId)}"]`)
       if (nodeEl) {
-        nodeEl.classList.add('claimed')
+        const closest = nodeEl.closest('.node') || nodeEl
+        closest.classList.add('claimed')
       }
     }
   }, [claims])
